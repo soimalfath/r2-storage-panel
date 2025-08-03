@@ -137,9 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(text).then(() => {
                 showToast(successMessage, 'success');
-            }).catch(err => {
-                console.error('Copy failed:', err);
-                showToast('Failed to copy to clipboard', 'error');
+            }).catch(() => {
+                showToast('Failed to copy', 'error');
             });
         } else {
             // Fallback for older browsers
@@ -154,7 +153,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.execCommand('copy');
                 showToast(successMessage, 'success');
             } catch (err) {
-                console.error('Fallback copy failed:', err);
                 showToast('Failed to copy to clipboard', 'error');
             }
             document.body.removeChild(textArea);

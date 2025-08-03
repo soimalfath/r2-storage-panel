@@ -190,9 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
             xhr.addEventListener('load', () => {
                 if (xhr.status === 200) {
                     const response = JSON.parse(xhr.responseText);
-                    console.log('Response:', response);
                     if (response.success) {
-                        console.log('Success, showing result');
                         // The response structure is { success: true, data: { file: {...} } }
                         showSuccessResult(response.data.file);
                     } else {

@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentData = null; // Store current data for theme updates
 
     // Initialize
-    console.log('Stats page loaded, attempting to fetch data...');
     loadStats();
     refreshBtn.addEventListener('click', loadStats);
     
@@ -50,38 +49,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function loadStats() {
         try {
-            console.log('Starting loadStats...');
             showLoading(true);
             
-            // Debug: test endpoint first
-            console.log('Testing /api/stats/test endpoint...');
-            try {
-                const testResponse = await fetch('/api/stats/test', {
-                    credentials: 'include'
-                });
-                console.log('Test response status:', testResponse.status);
-                const testText = await testResponse.text();
-                console.log('Test response:', testText);
-            } catch (testError) {
-                console.error('Test endpoint failed:', testError);
-            }
-            
-            console.log('Fetching /api/stats/storage...');
             const response = await fetch('/api/stats/storage', {
                 credentials: 'include'
             });
 
-            console.log('Response status:', response.status);
-            console.log('Response headers:', [...response.headers.entries()]);
-
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('Response error:', errorText);
                 throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
             }
 
             const result = await response.json();
-            console.log('API result:', result);
 
             if (!result.success) {
                 throw new Error(result.error || 'Failed to load statistics');
@@ -108,8 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function displayStats(data) {
-        console.log('Displaying stats:', data);
-        
         // Update cards
         totalSizeCard.textContent = data.storage.totalSizeFormatted;
         totalFilesCard.textContent = data.storage.totalFiles.toLocaleString();
