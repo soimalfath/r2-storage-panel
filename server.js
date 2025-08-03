@@ -65,6 +65,11 @@ app.use('/api', async (req, res, next) => {
       return await infoHandler(req, res);
     }
     
+    if (path.startsWith('/stats')) {
+      const statsHandler = require('./api/stats');
+      return await statsHandler(req, res);
+    }
+    
     // Default 404 for API routes
     res.status(404).json({ error: 'API endpoint not found' });
     
@@ -106,6 +111,9 @@ app.get('/webp-converter', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'webp-converter.html'));
 });
 
+app.get('/stats', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'stats.html'));
+});
 
 // Fallback to serve index.html for other routes
 app.get('*', (req, res) => {
