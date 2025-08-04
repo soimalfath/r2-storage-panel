@@ -24,9 +24,39 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingDiv = document.getElementById('loading-indicator');
     const emptyStateDiv = document.getElementById('empty-state');
     const loadMoreBtn = document.getElementById('loadMoreBtn');
-    const imagePreviewModal = document.getElementById('image-preview-modal');
+    
+    // Enhanced Preview Modal Elements
+    const filePreviewModal = document.getElementById('file-preview-modal');
+    const previewHeader = document.getElementById('preview-header');
+    const previewFileIcon = document.getElementById('preview-file-icon');
+    const previewFileName = document.getElementById('preview-file-name');
+    const previewFileInfo = document.getElementById('preview-file-info');
+    const previewContent = document.getElementById('preview-content');
+    const previewDownloadBtn = document.getElementById('preview-download-btn');
+    
+    // Preview content elements
+    const imagePreview = document.getElementById('image-preview');
     const previewImageEl = document.getElementById('preview-image');
-    const previewInfo = document.getElementById('preview-info');
+    const videoPreview = document.getElementById('video-preview');
+    const previewVideoEl = document.getElementById('preview-video');
+    const audioPreview = document.getElementById('audio-preview');
+    const previewAudioEl = document.getElementById('preview-audio');
+    const pdfPreview = document.getElementById('pdf-preview');
+    const previewPdfEl = document.getElementById('preview-pdf');
+    const textPreview = document.getElementById('text-preview');
+    const previewTextEl = document.getElementById('preview-text');
+    const documentPreview = document.getElementById('document-preview');
+    const documentIcon = document.getElementById('document-icon');
+    const documentDownloadBtn = document.getElementById('document-download-btn');
+    
+    // Image controls
+    const imageControls = document.getElementById('image-controls');
+    const zoomInBtn = document.getElementById('zoom-in-btn');
+    const zoomOutBtn = document.getElementById('zoom-out-btn');
+    const zoomResetBtn = document.getElementById('zoom-reset-btn');
+    const zoomLevelDisplay = document.getElementById('zoom-level');
+    const closePreviewBtn = document.getElementById('close-preview-btn');
+    
     const sharePopover = document.getElementById('share-popover');
     const confirmModal = document.getElementById('confirm-modal');
 
@@ -192,12 +222,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     `}
                 </div>
                 <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
-                    ${isImage ? `
-                        <button class="preview-btn opacity-0 group-hover:opacity-100 transform group-hover:scale-100 scale-90 transition-all bg-white/80 text-black rounded-full h-10 w-10" 
-                                data-url="${file.url}" data-name="${file.key}" data-size="${fileSize}" title="Pratinjau">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    ` : ''}
+                    <button class="preview-btn opacity-0 group-hover:opacity-100 transform group-hover:scale-100 scale-90 transition-all bg-white/80 text-black rounded-full h-10 w-10" 
+                            data-url="${file.url}" data-name="${file.key}" data-size="${fileSize}" data-type="${file.contentType}" title="Pratinjau">
+                        <i class="fas fa-eye"></i>
+                    </button>
                 </div>
                  <div class="absolute top-2 right-2 flex flex-col gap-2">
                     <button class="share-btn bg-white/70 text-gray-800 backdrop-blur-sm p-1.5 rounded-full shadow hover:bg-white text-xs transition-transform hover:scale-110" data-file='${JSON.stringify(file)}' title="Bagikan">
@@ -239,16 +267,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const deleteBtn = e.target.closest('.delete-btn');
             const shareBtn = e.target.closest('.share-btn');
             const downloadBtn = e.target.closest('.download-btn');
-            if (previewBtn) openImagePreview(previewBtn.dataset.url, previewBtn.dataset.name, previewBtn.dataset.size);
+            if (previewBtn) openFilePreview(previewBtn.dataset.url, previewBtn.dataset.name, previewBtn.dataset.size, previewBtn.dataset.type);
             if (deleteBtn) handleDeleteClick(deleteBtn.dataset.key);
             if (shareBtn) showSharePopover(e, JSON.parse(shareBtn.dataset.file));
             if (downloadBtn) downloadFile(downloadBtn.dataset.key, downloadBtn.dataset.url);
         });
 
-        document.getElementById('close-preview-btn').addEventListener('click', closeImagePreview);
-        imagePreviewModal.addEventListener('click', (e) => e.target === imagePreviewModal && closeImagePreview());
+        document.getElementById('close-preview-btn').addEventListener('click', closeFilePreview);
+        filePreviewModal.addEventListener('click', (e) => e.target === filePreviewModal && closeFilePreview());
         document.getElementById('zoom-in-btn').addEventListener('click', () => zoomImage(1.2));
         document.getElementById('zoom-out-btn').addEventListener('click', () => zoomImage(0.8));
+        document.getElementById('zoom-reset-btn').addEventListener('click', () => resetZoom());
 
         document.getElementById('copy-cdn-btn').addEventListener('click', () => copyToClipboard(currentShareFile.url, 'URL Publik'));
         document.getElementById('copy-presigned-btn').addEventListener('click', () => copyToClipboard(currentShareFile.presignedUrl, 'URL Sementara'));
@@ -405,23 +434,146 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300);
     }
 
-    function openImagePreview(url, name, size) {
+    function openFilePreview(url, name, size, contentType) {
+        // Hide all preview content first
+        hideAllPreviewContent();
+        
+        // Set common elements
+        previewFileName.textContent = name;
+        previewFileInfo.textContent = `${size} • ${contentType || 'Unknown type'}`;
+        previewFileIcon.className = getFileIcon(contentType);
+        previewDownloadBtn.href = url;
+        previewDownloadBtn.download = name;
+        
+        const fileType = getFileType(contentType);
+        
+        // Show appropriate preview based on file type
+        switch (fileType) {
+            case 'image':
+                showImagePreview(url, name);
+                break;
+            case 'video':
+                showVideoPreview(url, contentType);
+                break;
+            case 'audio':
+                showAudioPreview(url, contentType);
+                break;
+            case 'doc':
+                if (contentType === 'application/pdf') {
+                    showPdfPreview(url);
+                } else if (contentType.includes('text/') || name.match(/\.(txt|js|css|html|json|xml|md|log|csv)$/i)) {
+                    showTextPreview(url, name);
+                } else {
+                    showDocumentPreview(name, url, contentType);
+                }
+                break;
+            default:
+                showDocumentPreview(name, url, contentType);
+        }
+        
+        // Show modal
+        filePreviewModal.classList.remove('hidden');
+        setTimeout(() => filePreviewModal.classList.remove('opacity-0'), 10);
+    }
+    
+    function hideAllPreviewContent() {
+        imagePreview.classList.add('hidden');
+        videoPreview.classList.add('hidden');
+        audioPreview.classList.add('hidden');
+        pdfPreview.classList.add('hidden');
+        textPreview.classList.add('hidden');
+        documentPreview.classList.add('hidden');
+        imageControls.classList.add('hidden');
+    }
+    
+    function showImagePreview(url, name) {
         previewImageEl.src = url;
-        previewInfo.textContent = `${name} (${size})`;
+        previewImageEl.alt = name;
         zoomLevel = 1;
         previewImageEl.style.transform = `scale(${zoomLevel})`;
-        imagePreviewModal.classList.remove('hidden');
-        setTimeout(() => imagePreviewModal.classList.remove('opacity-0'), 10);
+        updateZoomDisplay();
+        imagePreview.classList.remove('hidden');
+        imageControls.classList.remove('hidden');
+    }
+    
+    function showVideoPreview(url, contentType) {
+        previewVideoEl.src = url;
+        previewVideoEl.load(); // Reload video element
+        videoPreview.classList.remove('hidden');
+    }
+    
+    function showAudioPreview(url, contentType) {
+        previewAudioEl.src = url;
+        previewAudioEl.load(); // Reload audio element
+        audioPreview.classList.remove('hidden');
+    }
+    
+    function showPdfPreview(url) {
+        previewPdfEl.src = url + '#toolbar=1&navpanes=1&scrollbar=1';
+        pdfPreview.classList.remove('hidden');
+    }
+    
+    async function showTextPreview(url, name) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to fetch file');
+            
+            const text = await response.text();
+            previewTextEl.textContent = text;
+            
+            // Apply basic syntax highlighting based on file extension
+            const extension = name.split('.').pop().toLowerCase();
+            previewTextEl.className = `text-green-400 font-mono text-sm p-4 whitespace-pre-wrap language-${extension}`;
+            
+            textPreview.classList.remove('hidden');
+        } catch (error) {
+            showDocumentPreview(name, url, 'text/plain');
+        }
+    }
+    
+    function showDocumentPreview(name, url, contentType) {
+        documentIcon.className = getFileIcon(contentType);
+        documentDownloadBtn.href = url;
+        documentDownloadBtn.download = name;
+        documentPreview.classList.remove('hidden');
     }
 
-    function closeImagePreview() {
-        imagePreviewModal.classList.add('opacity-0');
-        setTimeout(() => imagePreviewModal.classList.add('hidden'), 300);
+    function closeFilePreview() {
+        // Stop any playing media
+        if (previewVideoEl.src) {
+            previewVideoEl.pause();
+            previewVideoEl.src = '';
+        }
+        if (previewAudioEl.src) {
+            previewAudioEl.pause();
+            previewAudioEl.src = '';
+        }
+        if (previewPdfEl.src) {
+            previewPdfEl.src = '';
+        }
+        
+        filePreviewModal.classList.add('opacity-0');
+        setTimeout(() => filePreviewModal.classList.add('hidden'), 300);
     }
 
     function zoomImage(factor) {
-        zoomLevel = Math.max(0.5, Math.min(3, zoomLevel * factor));
-        previewImageEl.style.transform = `scale(${zoomLevel})`;
+        if (!imagePreview.classList.contains('hidden')) {
+            zoomLevel = Math.max(0.25, Math.min(5, zoomLevel * factor));
+            previewImageEl.style.transform = `scale(${zoomLevel})`;
+            updateZoomDisplay();
+        }
+    }
+    
+    function resetZoom() {
+        if (!imagePreview.classList.contains('hidden')) {
+            zoomLevel = 1;
+            previewImageEl.style.transform = `scale(${zoomLevel})`;
+            updateZoomDisplay();
+        }
+    }
+    
+    function updateZoomDisplay() {
+        zoomLevelDisplay.textContent = Math.round(zoomLevel * 100) + '%';
     }
     
     function hideSharePopover() {
@@ -531,19 +683,28 @@ document.addEventListener('DOMContentLoaded', () => {
         if (contentType.startsWith('image/')) return 'image';
         if (contentType.startsWith('video/')) return 'video';
         if (contentType.startsWith('audio/')) return 'audio';
-        if (contentType.includes('pdf') || contentType.includes('document') || contentType.includes('text')) return 'doc';
-        if (contentType.includes('zip') || contentType.includes('archive') || contentType.includes('rar')) return 'archive';
+        if (contentType === 'application/pdf') return 'doc';
+        if (contentType.includes('pdf') || contentType.includes('document') || contentType.includes('text') || 
+            contentType.includes('msword') || contentType.includes('wordprocessing') ||
+            contentType.includes('spreadsheet') || contentType.includes('presentation')) return 'doc';
+        if (contentType.includes('zip') || contentType.includes('archive') || contentType.includes('rar') ||
+            contentType.includes('gzip') || contentType.includes('7z') || contentType.includes('tar')) return 'archive';
         return 'other';
     }
 
     function getFileIcon(contentType = '') {
         switch(getFileType(contentType)) {
-            case 'image': return 'fas fa-file-image';
-            case 'video': return 'fas fa-file-video';
-            case 'audio': return 'fas fa-file-audio';
-            case 'doc': return 'fas fa-file-alt';
-            case 'archive': return 'fas fa-file-archive';
-            default: return 'fas fa-file';
+            case 'image': return 'fas fa-file-image text-green-500';
+            case 'video': return 'fas fa-file-video text-red-500';
+            case 'audio': return 'fas fa-file-audio text-purple-500';
+            case 'doc': 
+                if (contentType === 'application/pdf') return 'fas fa-file-pdf text-red-600';
+                if (contentType.includes('word')) return 'fas fa-file-word text-blue-600';
+                if (contentType.includes('excel') || contentType.includes('spreadsheet')) return 'fas fa-file-excel text-green-600';
+                if (contentType.includes('powerpoint') || contentType.includes('presentation')) return 'fas fa-file-powerpoint text-orange-600';
+                return 'fas fa-file-alt text-gray-600';
+            case 'archive': return 'fas fa-file-archive text-yellow-600';
+            default: return 'fas fa-file text-gray-500';
         }
     }
 
