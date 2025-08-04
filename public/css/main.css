@@ -1,17 +1,124 @@
-/* Main CSS Styles */
+/* Main CSS Styles with Dark Mode Support */
 :root {
     --primary-color: #4f46e5;
     --primary-hover: #4338ca;
+    
+    /* Light Mode Colors */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f9fafb;
+    --bg-tertiary: #f3f4f6;
+    --text-primary: #111827;
+    --text-secondary: #6b7280;
+    --text-tertiary: #9ca3af;
+    --border-color: #e5e7eb;
+    --border-hover: #d1d5db;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --overlay-color: rgba(0, 0, 0, 0.8);
+    --hover-bg: #f3f4f6;
+    
+    /* Warning colors */
+    --warning-bg: #fef3c7;
+    --warning-border: #fde68a;
+    --warning-text: #92400e;
+    --warning-text-strong: #78350f;
+    
+    /* Info colors */
+    --info-bg: #dbeafe;
+    --info-border: #93c5fd;
+    --info-text: #1d4ed8;
+    --info-text-strong: #1e40af;
+}
+
+[data-theme="dark"] {
+    /* Dark Mode Colors */
+    --bg-primary: #1f2937;
+    --bg-secondary: #111827;
+    --bg-tertiary: #374151;
+    --text-primary: #f9fafb;
+    --text-secondary: #d1d5db;
+    --text-tertiary: #9ca3af;
+    --border-color: #374151;
+    --border-hover: #4b5563;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --overlay-color: rgba(0, 0, 0, 0.9);
+    --hover-bg: #374151;
+    
+    /* Dark mode specific adjustments */
+    --primary-color: #6366f1;
+    --primary-hover: #5b21b6;
+    
+    /* Dark mode warning colors */
+    --warning-bg: #451a03;
+    --warning-border: #92400e;
+    --warning-text: #fbbf24;
+    --warning-text-strong: #fde047;
+    
+    /* Dark mode info colors */
+    --info-bg: #1e3a8a;
+    --info-border: #3b82f6;
+    --info-text: #93c5fd;
+    --info-text-strong: #dbeafe;
 }
 
 body {
     font-family: 'Inter', sans-serif;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+    background-color: var(--bg-tertiary);
+}
+
+/* Dark mode overrides for common elements */
+.bg-white {
+    background-color: var(--bg-primary) !important;
+}
+
+.bg-gray-50 {
+    background-color: var(--bg-secondary) !important;
+}
+
+.bg-gray-100 {
+    background-color: var(--bg-tertiary) !important;
+}
+
+.text-gray-800 {
+    color: var(--text-primary) !important;
+}
+
+.text-gray-600 {
+    color: var(--text-secondary) !important;
+}
+
+.text-gray-500 {
+    color: var(--text-tertiary) !important;
+}
+
+.border-gray-300 {
+    border-color: var(--border-color) !important;
+}
+
+.border-gray-200 {
+    border-color: var(--border-color) !important;
 }
 
 /* Toast Notifications */
 .toast {
     animation: slide-in 0.3s ease-out, fade-out 0.5s ease-in forwards;
     animation-delay: 0s, 3.5s;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
 }
 
 @keyframes slide-in {
@@ -43,7 +150,7 @@ body {
 .filter-btn.active {
     background-color: var(--primary-color);
     color: white;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    box-shadow: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -2px var(--shadow-color);
 }
 
 .filter-btn.active span {
@@ -51,27 +158,139 @@ body {
     color: var(--primary-color);
 }
 
+.filter-btn {
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.filter-btn:hover {
+    background-color: var(--border-hover);
+}
+
 .file-card {
     transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
 }
 
 .file-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    box-shadow: 0 10px 15px -3px var(--shadow-color), 0 4px 6px -4px var(--shadow-color);
 }
 
 /* Modal Styles */
 #image-preview-modal, #confirm-modal {
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: var(--overlay-color);
     transition: opacity 0.3s ease;
+}
+
+#confirm-modal .bg-white {
+    background-color: var(--bg-primary) !important;
 }
 
 #preview-image {
     transition: transform 0.3s ease;
 }
 
+/* Modal Styles */
+#file-preview-modal, #confirm-modal {
+    background-color: rgba(0, 0, 0, 0.9);
+    transition: opacity 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+#preview-image {
+    transition: transform 0.3s ease;
+    cursor: grab;
+}
+
+#preview-image:active {
+    cursor: grabbing;
+}
+
+/* Preview content styles */
+#text-preview pre {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+#video-preview video,
+#audio-preview audio {
+    outline: none;
+    border-radius: 8px;
+}
+
+#pdf-preview iframe {
+    border: none;
+    min-height: 70vh;
+}
+
+/* File type specific colors */
+.text-file-icon { color: #10b981; }
+.image-file-icon { color: #3b82f6; }
+.video-file-icon { color: #ef4444; }
+.audio-file-icon { color: #8b5cf6; }
+.pdf-file-icon { color: #dc2626; }
+.archive-file-icon { color: #f59e0b; }
+
+/* Loading states */
+.preview-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    color: #6b7280;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    #file-preview-modal .max-w-6xl {
+        max-width: 95vw;
+    }
+    
+    #preview-header {
+        padding: 12px;
+    }
+    
+    #preview-file-name {
+        font-size: 16px;
+    }
+    
+    #zoom-in-btn, #zoom-out-btn, #close-preview-btn {
+        height: 36px;
+        width: 36px;
+    }
+}
+
 #share-popover {
     transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+}
+
+#share-popover button {
+    color: var(--text-primary);
+}
+
+#share-popover button:hover {
+    background-color: var(--bg-tertiary);
+}
+
+/* Input and Form Elements */
+input, textarea, select {
+    background-color: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+input:focus, textarea:focus, select:focus {
+    border-color: var(--primary-color);
+    background-color: var(--bg-primary);
 }
 
 /* WebP Converter Specific Styles */
@@ -79,7 +298,7 @@ body {
     width: 100%;
     height: 6px;
     border-radius: 3px;
-    background: #e5e7eb;
+    background: var(--bg-tertiary);
     outline: none;
     -webkit-appearance: none;
 }
@@ -107,5 +326,35 @@ body {
     max-width: 100%;
     max-height: 200px;
     border-radius: 8px;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    box-shadow: 0 4px 6px -1px var(--shadow-color);
+}
+
+/* Chart.js dark mode support */
+[data-theme="dark"] .chart-container {
+    filter: brightness(0.9);
+}
+
+/* Chart legend styling for better visibility */
+canvas {
+    background-color: transparent !important;
+}
+
+/* Ensure chart text elements use theme colors */
+[data-theme="dark"] canvas {
+    color-scheme: dark;
+}
+
+/* Chart legend text styling */
+.chartjs-legend,
+.chartjs-legend ul,
+.chartjs-legend li,
+.chartjs-legend span {
+    color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .chartjs-legend,
+[data-theme="dark"] .chartjs-legend ul,
+[data-theme="dark"] .chartjs-legend li,
+[data-theme="dark"] .chartjs-legend span {
+    color: var(--text-primary) !important;
 }

@@ -1,4 +1,81 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Apply dark mode styling overrides
+    function applyDarkModeOverrides() {
+        // Apply styling to all background elements
+        const whiteElements = document.querySelectorAll('.bg-white');
+        whiteElements.forEach(el => {
+            el.style.backgroundColor = 'var(--bg-primary)';
+        });
+
+        const grayBgElements = document.querySelectorAll('.bg-gray-50, .bg-gray-100');
+        grayBgElements.forEach(el => {
+            el.style.backgroundColor = 'var(--bg-secondary)';
+        });
+
+        // Apply styling to text elements
+        const textElements = {
+            '.text-gray-800': 'var(--text-primary)',
+            '.text-gray-700': 'var(--text-primary)', 
+            '.text-gray-600': 'var(--text-secondary)',
+            '.text-gray-500': 'var(--text-secondary)'
+        };
+
+        Object.entries(textElements).forEach(([selector, color]) => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+                el.style.color = color;
+            });
+        });
+
+        // Apply styling to borders
+        const borderElements = document.querySelectorAll('.border-gray-200, .border-gray-300');
+        borderElements.forEach(el => {
+            el.style.borderColor = 'var(--border-color)';
+        });
+
+        // Apply styling to info/warning boxes
+        const blueBoxes = document.querySelectorAll('.bg-blue-50');
+        blueBoxes.forEach(el => {
+            el.style.backgroundColor = 'var(--info-bg)';
+        });
+
+        const blueBorders = document.querySelectorAll('.border-blue-200');
+        blueBorders.forEach(el => {
+            el.style.borderColor = 'var(--info-border)';
+        });
+
+        const blueText = document.querySelectorAll('.text-blue-800, .text-blue-700');
+        blueText.forEach(el => {
+            if (el.classList.contains('text-blue-800')) {
+                el.style.color = 'var(--info-text-strong)';
+            } else {
+                el.style.color = 'var(--info-text)';
+            }
+        });
+
+        // Apply styling to endpoint cards
+        const endpointCards = document.querySelectorAll('.endpoint-card');
+        endpointCards.forEach(el => {
+            el.style.backgroundColor = 'var(--bg-primary)';
+        });
+    }
+
+    // Apply initial styling
+    applyDarkModeOverrides();
+
+    // Listen for theme changes
+    const themeObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+                applyDarkModeOverrides();
+            }
+        });
+    });
+
+    themeObserver.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme']
+    });
     // Configuration
     // Ambil API_KEY dari endpoint backend agar selalu sinkron dengan env
     let DEFAULT_API_KEY = 'your-api-key-change-this';
@@ -60,9 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(text).then(() => {
                 showToast(successMessage, 'success');
-            }).catch(err => {
-                console.error('Copy failed:', err);
-                showToast('Failed to copy to clipboard', 'error');
+            }).catch(() => {
+                showToast('Failed to copy', 'error');
             });
         } else {
             // Fallback for older browsers
@@ -77,7 +153,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.execCommand('copy');
                 showToast(successMessage, 'success');
             } catch (err) {
-                console.error('Fallback copy failed:', err);
                 showToast('Failed to copy to clipboard', 'error');
             }
             document.body.removeChild(textArea);

@@ -10,35 +10,43 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
     <link rel="stylesheet" href="/css/api-docs.css">
+    <script src="/js/theme.js"></script>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body style="background-color: var(--bg-secondary);" class="min-h-screen">
 
     <!-- Toast container for notifications -->
     <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3"></div>
 
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
         <!-- Header Section -->
-        <header class="bg-white shadow-md rounded-xl p-6 mb-8">
+        <header class="shadow-md rounded-xl p-6 mb-8" style="background-color: var(--bg-primary);">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 class="text-2xl md:text-3xl font-bold text-gray-800 flex items-center">
+                    <h1 class="text-2xl md:text-3xl font-bold flex items-center" style="color: var(--text-primary);">
                         <span class="text-white bg-indigo-600 rounded-lg p-2 mr-4">
                             <i class="fas fa-code"></i>
                         </span>
                         API Documentation
                     </h1>
-                    <p class="text-gray-500 mt-2 ml-12">REST API for Qiblat File Manager - External Application Integration</p>
+                    <p class="mt-2 ml-12" style="color: var(--text-secondary);">REST API for Qiblat File Manager - External Application Integration</p>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
-                    <!-- <a href="/webp-converter.html" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold flex items-center gap-2">
+                    <a href="/webp-converter" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold flex items-center gap-2">
                         <i class="fas fa-image"></i>
                         <span>WebP Converter</span>
-                    </a> -->
+                    </a>
+                    <a href="/stats" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold flex items-center gap-2">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Statistics</span>
+                    </a>
                     <button id="generateApiKeyBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-semibold flex items-center gap-2">
                         <i class="fas fa-key"></i>
                         <span>Show API Key</span>
                     </button>
-                    <a href="/" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors text-sm font-semibold flex items-center gap-2">
+                    <a href="/" class="px-4 py-2 rounded-lg transition-colors text-sm font-semibold flex items-center gap-2"
+                       style="background-color: var(--bg-secondary); color: var(--text-primary);"
+                       onmouseover="this.style.backgroundColor='var(--hover-bg)'"
+                       onmouseout="this.style.backgroundColor='var(--bg-secondary)'">
                         <i class="fas fa-arrow-left"></i>
                         <span>Back</span>
                     </a>
@@ -47,26 +55,31 @@
         </header>
 
         <!-- API Key Section -->
-        <div id="apiKeySection" class="bg-white rounded-xl shadow-md p-6 mb-8 hidden">
-            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+        <div id="apiKeySection" class="rounded-xl shadow-md p-6 mb-8 hidden" style="background-color: var(--bg-primary);">
+            <h2 class="text-xl font-bold mb-4 flex items-center" style="color: var(--text-primary);">
                 <i class="fas fa-key mr-3 text-yellow-500"></i>
                 API Authentication
             </h2>
-            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+            <div class="border rounded-lg p-4 mb-4" style="background-color: var(--warning-bg); border-color: var(--warning-border);">
                 <div class="flex items-start">
                     <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-3 flex-shrink-0"></i>
                     <div>
-                        <h3 class="font-semibold text-yellow-800">Security Warning</h3>
-                        <p class="text-yellow-700 text-sm">Keep your API key secure. Do not share it or commit it to version control.</p>
+                        <h3 class="font-semibold" style="color: var(--warning-text-strong);">Security Warning</h3>
+                        <p class="text-sm" style="color: var(--warning-text);">Keep your API key secure. Do not share it or commit it to version control.</p>
                     </div>
                 </div>
             </div>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Your API Key</label>
+                    <label class="block text-sm font-medium mb-2" style="color: var(--text-secondary);">Your API Key</label>
                     <div class="flex items-center gap-2">
-                        <input type="password" id="apiKeyDisplay" readonly class="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                        <button id="toggleApiKeyBtn" class="p-2 text-gray-500 hover:text-gray-800" aria-label="Toggle API Key Visibility">
+                        <input type="password" id="apiKeyDisplay" readonly 
+                               class="flex-1 px-3 py-2 border rounded-lg font-mono text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                               style="background-color: var(--bg-secondary); border-color: var(--border-color); color: var(--text-primary);">
+                        <button id="toggleApiKeyBtn" class="p-2 transition-colors" style="color: var(--text-secondary);" 
+                                onmouseover="this.style.color='var(--text-primary)'"
+                                onmouseout="this.style.color='var(--text-secondary)'"
+                                aria-label="Toggle API Key Visibility">
                             <i class="fas fa-eye"></i>
                         </button>
                         <button id="copyApiKeyBtn" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm font-semibold flex items-center gap-2">
@@ -79,30 +92,33 @@
         </div>
 
         <!-- Base URL -->
-        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">Base URL</h2>
-            <div class="bg-gray-100 rounded-lg p-4 flex items-center justify-between">
-                <p class="font-mono text-sm text-gray-800 overflow-x-auto">
-                    <span class="text-gray-500">Base URL:</span> <span class="text-indigo-600 font-semibold" id="baseUrl">http://localhost:3000/api</span>
+        <div class="rounded-xl shadow-md p-6 mb-8" style="background-color: var(--bg-primary);">
+            <h2 class="text-xl font-bold mb-4" style="color: var(--text-primary);">Base URL</h2>
+            <div class="rounded-lg p-4 flex items-center justify-between" style="background-color: var(--bg-secondary);">
+                <p class="font-mono text-sm overflow-x-auto" style="color: var(--text-primary);">
+                    <span style="color: var(--text-secondary);">Base URL:</span> <span class="text-indigo-600 font-semibold" id="baseUrl">http://localhost:3000/api</span>
                 </p>
-                <button id="copyBaseUrlBtn" class="ml-4 text-gray-500 hover:text-gray-800 flex-shrink-0" aria-label="Copy Base URL">
+                <button id="copyBaseUrlBtn" class="ml-4 flex-shrink-0 transition-colors" style="color: var(--text-secondary);"
+                        onmouseover="this.style.color='var(--text-primary)'"
+                        onmouseout="this.style.color='var(--text-secondary)'" 
+                        aria-label="Copy Base URL">
                     <i class="fas fa-copy"></i>
                 </button>
             </div>
         </div>
 
         <!-- Authentication -->
-        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">Authentication</h2>
-            <p class="text-gray-600 mb-6">This API supports two types of authentication:</p>
+        <div class="rounded-xl shadow-md p-6 mb-8" style="background-color: var(--bg-primary);">
+            <h2 class="text-xl font-bold mb-4" style="color: var(--text-primary);">Authentication</h2>
+            <p class="mb-6" style="color: var(--text-secondary);">This API supports two types of authentication:</p>
             
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h3 class="font-semibold text-blue-800 mb-2 flex items-center">
+                <div class="p-4 rounded-lg border" style="background-color: var(--info-bg); border-color: var(--info-border);">
+                    <h3 class="font-semibold mb-2 flex items-center" style="color: var(--info-text-strong);">
                         <i class="fas fa-key mr-2"></i>
                         API Key Authentication
                     </h3>
-                    <p class="text-blue-700 text-sm mb-3">For external applications and programmatic access</p>
+                    <p class="text-sm mb-3" style="color: var(--info-text);">For external applications and programmatic access</p>
                     <div class="space-y-2">
                         <div>
                             <h4 class="font-medium text-blue-800 text-sm">X-API-Key Header</h4>

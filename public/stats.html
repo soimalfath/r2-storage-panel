@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storage Statistics - File Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/css/main.css">
+    <script src="/js/theme.js"></script>
+</head>
+<body class="font-sans transition-colors duration-300">
+
+    <!-- Toast container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3"></div>
+
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
+        <!-- Header -->
+        <header class="shadow-md rounded-xl p-6 mb-8" style="background-color: var(--bg-primary);">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold flex items-center" style="color: var(--text-primary);">
+                        <span class="text-white bg-blue-600 rounded-lg p-2 mr-4">
+                            <i class="fas fa-chart-bar"></i>
+                        </span>
+                        Storage Statistics
+                    </h1>
+                    <p class="mt-2 ml-12" style="color: var(--text-secondary);">Monitor your storage usage and file statistics</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="refreshBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold flex items-center gap-2">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Refresh</span>
+                    </button>
+                    <a href="/" class="px-4 py-2 rounded-lg transition-colors text-sm font-semibold flex items-center gap-2"
+                       style="background-color: var(--bg-secondary); color: var(--text-primary);"
+                       onmouseover="this.style.backgroundColor='var(--hover-bg)'"
+                       onmouseout="this.style.backgroundColor='var(--bg-secondary)'">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back</span>
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-20">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p style="color: var(--text-secondary);">Loading storage statistics...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="hidden text-center py-20">
+            <div class="text-red-500 text-6xl mb-4">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3 class="text-xl font-semibold mb-2" style="color: var(--text-primary);">Error Loading Statistics</h3>
+            <p id="errorMessage" class="mb-4" style="color: var(--text-secondary);">Failed to load storage statistics</p>
+            <button id="retryBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="fas fa-redo mr-2"></i>Retry
+            </button>
+        </div>
+
+        <!-- Main Content -->
+        <div id="mainContent" class="hidden space-y-8">
+            <!-- Overview Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Total Storage Used -->
+                <div class="rounded-xl shadow-md p-6" style="background-color: var(--bg-primary);">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium" style="color: var(--text-secondary);">Storage Used</p>
+                            <p id="totalSizeCard" class="text-2xl font-bold" style="color: var(--text-primary);">-</p>
+                        </div>
+                        <div class="bg-blue-100 dark:bg-blue-900 p-3 rounded-full">
+                            <i class="fas fa-hdd text-blue-600 dark:text-blue-400 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex items-center">
+                            <span id="usagePercentCard" class="text-sm font-medium" style="color: var(--text-secondary);">-% of free tier</span>
+                        </div>
+                        <div class="w-full rounded-full h-2 mt-2" style="background-color: var(--bg-secondary);">
+                            <div id="usageBarCard" class="h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Files -->
+                <div class="rounded-xl shadow-md p-6" style="background-color: var(--bg-primary);">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium" style="color: var(--text-secondary);">Total Files</p>
+                            <p id="totalFilesCard" class="text-2xl font-bold" style="color: var(--text-primary);">-</p>
+                        </div>
+                        <div class="bg-green-100 dark:bg-green-900 p-3 rounded-full">
+                            <i class="fas fa-file text-green-600 dark:text-green-400 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Free Tier Limit -->
+                <div class="rounded-xl shadow-md p-6" style="background-color: var(--bg-primary);">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium" style="color: var(--text-secondary);">Free Tier Limit</p>
+                            <p id="freeTierLimitCard" class="text-2xl font-bold" style="color: var(--text-primary);">10 GB</p>
+                        </div>
+                        <div class="bg-yellow-100 dark:bg-yellow-900 p-3 rounded-full">
+                            <i class="fas fa-exclamation-triangle text-yellow-600 dark:text-yellow-400 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Remaining Space -->
+                <div class="rounded-xl shadow-md p-6" style="background-color: var(--bg-primary);">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium" style="color: var(--text-secondary);">Remaining</p>
+                            <p id="remainingSpaceCard" class="text-2xl font-bold" style="color: var(--text-primary);">-</p>
+                        </div>
+                        <div class="bg-purple-100 dark:bg-purple-900 p-3 rounded-full">
+                            <i class="fas fa-database text-purple-600 dark:text-purple-400 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warning Banner -->
+            <div id="warningBanner" class="hidden border rounded-lg p-4" style="background-color: var(--warning-bg); border-color: var(--warning-border);">
+                <div class="flex items-start">
+                    <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
+                    <div>
+                        <h3 class="font-semibold" style="color: var(--warning-text-strong);">Storage Warning</h3>
+                        <p id="warningMessage" class="text-sm" style="color: var(--warning-text);"></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Storage Usage Chart -->
+                <div class="rounded-xl shadow-md p-6" style="background-color: var(--bg-primary);">
+                    <h3 class="text-xl font-bold mb-4" style="color: var(--text-primary);">Storage Usage</h3>
+                    <div class="relative h-64">
+                        <canvas id="storageChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- File Types Chart -->
+                <div class="rounded-xl shadow-md p-6" style="background-color: var(--bg-primary);">
+                    <h3 class="text-xl font-bold mb-4" style="color: var(--text-primary);">File Types Distribution</h3>
+                    <div class="relative h-64">
+                        <canvas id="fileTypesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Largest Files Table -->
+            <div class="rounded-xl shadow-md p-6" style="background-color: var(--bg-primary);">
+                <h3 class="text-xl font-bold mb-4" style="color: var(--text-primary);">Largest Files</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full" style="border-collapse: separate; border-spacing: 0;">
+                        <thead style="background-color: var(--bg-secondary);">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: var(--text-secondary);">File Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: var(--text-secondary);">Size</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style="color: var(--text-secondary);">Last Modified</th>
+                            </tr>
+                        </thead>
+                        <tbody id="largestFilesTable" style="background-color: var(--bg-primary);">
+                            <!-- Table rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Note -->
+            <div class="border rounded-lg p-4" style="background-color: var(--info-bg); border-color: var(--info-border);">
+                <div class="flex items-start">
+                    <i class="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
+                    <div>
+                        <h3 class="font-semibold" style="color: var(--info-text-strong);">Note</h3>
+                        <p class="text-sm mt-1" style="color: var(--info-text);">
+                            Traffic and request statistics are not available through the R2 API. Please check your Cloudflare dashboard for complete usage metrics including bandwidth and requests.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/stats.js"></script>
+</body>
+</html>

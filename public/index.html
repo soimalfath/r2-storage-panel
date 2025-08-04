@@ -11,22 +11,98 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     <link rel="stylesheet" href="/css/main.css">
-
+    <script src="/js/theme.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen">
 
     <div id="toast-container" class="fixed bottom-5 right-5 z-[100] flex flex-col gap-3"></div>
 
-    <div id="image-preview-modal" class="fixed inset-0 z-[90] flex items-center justify-center p-4 hidden opacity-0">
-        <div class="relative max-w-4xl max-h-full">
-            <img id="preview-image" src="" alt="Image Preview" class="rounded-lg shadow-2xl max-w-full max-h-[80vh]">
-            <div id="preview-info" class="text-white text-sm absolute bottom-2 left-2 bg-black bg-opacity-50 px-2 py-1 rounded"></div>
-            <button id="close-preview-btn" class="absolute -top-2 -right-2 bg-white text-black rounded-full h-8 w-8 flex items-center justify-center shadow-lg hover:bg-gray-200 transition-transform transform hover:scale-110">
-                <i class="fas fa-times"></i>
-            </button>
-            <div class="absolute top-2 left-2 flex gap-2">
-                <button id="zoom-in-btn" class="bg-white text-black rounded-full h-8 w-8 flex items-center justify-center shadow-lg hover:bg-gray-200 transition-transform transform hover:scale-110"><i class="fas fa-search-plus"></i></button>
-                <button id="zoom-out-btn" class="bg-white text-black rounded-full h-8 w-8 flex items-center justify-center shadow-lg hover:bg-gray-200 transition-transform transform hover:scale-110"><i class="fas fa-search-minus"></i></button>
+    <!-- Enhanced File Preview Modal -->
+    <div id="file-preview-modal" class="fixed inset-0 z-[90] flex items-center justify-center p-4 hidden opacity-0">
+        <div class="relative bg-black bg-opacity-90 rounded-lg max-w-6xl max-h-full w-full h-full overflow-hidden">
+            <!-- Header with controls -->
+            <div id="preview-header" class="absolute top-0 left-0 right-0 z-10 bg-black bg-opacity-80 text-white p-4 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div id="preview-file-icon" class="text-2xl"></div>
+                    <div>
+                        <h3 id="preview-file-name" class="font-semibold text-lg"></h3>
+                        <p id="preview-file-info" class="text-sm text-gray-300"></p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <!-- Image controls -->
+                    <div id="image-controls" class="flex space-x-2 hidden">
+                        <button id="zoom-out-btn" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full h-10 w-10 flex items-center justify-center transition-all">
+                            <i class="fas fa-search-minus"></i>
+                        </button>
+                        <button id="zoom-reset-btn" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded px-3 py-2 text-sm transition-all">
+                            <span id="zoom-level">100%</span>
+                        </button>
+                        <button id="zoom-in-btn" class="bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-full h-10 w-10 flex items-center justify-center transition-all">
+                            <i class="fas fa-search-plus"></i>
+                        </button>
+                    </div>
+                    <!-- Download button -->
+                    <a id="preview-download-btn" href="#" download class="bg-green-600 hover:bg-green-700 text-white rounded-full h-10 w-10 flex items-center justify-center transition-all">
+                        <i class="fas fa-download"></i>
+                    </a>
+                    <!-- Close button -->
+                    <button id="close-preview-btn" class="bg-red-600 hover:bg-red-700 text-white rounded-full h-10 w-10 flex items-center justify-center transition-all">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content area -->
+            <div id="preview-content" class="w-full h-full pt-20 p-4 flex items-center justify-center overflow-auto">
+                <!-- Image preview -->
+                <div id="image-preview" class="hidden">
+                    <img id="preview-image" src="" alt="Image Preview" class="max-w-full max-h-full object-contain transition-transform">
+                </div>
+                
+                <!-- Video preview -->
+                <div id="video-preview" class="hidden w-full max-w-4xl">
+                    <video id="preview-video" controls class="w-full h-auto max-h-full rounded-lg">
+                        <source src="" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+                
+                <!-- Audio preview -->
+                <div id="audio-preview" class="hidden w-full max-w-2xl">
+                    <div class="bg-gray-800 rounded-lg p-8 text-center">
+                        <i class="fas fa-music text-6xl text-blue-400 mb-4"></i>
+                        <audio id="preview-audio" controls class="w-full">
+                            <source src="" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                </div>
+                
+                <!-- PDF preview -->
+                <div id="pdf-preview" class="hidden w-full h-full">
+                    <iframe id="preview-pdf" src="" class="w-full h-full rounded-lg bg-white"></iframe>
+                </div>
+                
+                <!-- Text preview -->
+                <div id="text-preview" class="hidden w-full max-w-4xl h-full">
+                    <div class="bg-gray-900 rounded-lg h-full overflow-auto">
+                        <pre id="preview-text" class="text-green-400 font-mono text-sm p-4 whitespace-pre-wrap"></pre>
+                    </div>
+                </div>
+                
+                <!-- Document preview (for non-supported types) -->
+                <div id="document-preview" class="hidden text-center text-white">
+                    <div class="bg-gray-800 rounded-lg p-12">
+                        <i id="document-icon" class="text-6xl text-gray-400 mb-4"></i>
+                        <h3 class="text-xl font-semibold mb-2">Preview not available</h3>
+                        <p class="text-gray-400 mb-6">This file type cannot be previewed in the browser.</p>
+                        <a id="document-download-btn" href="#" download class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg inline-flex items-center space-x-2 transition-colors">
+                            <i class="fas fa-download"></i>
+                            <span>Download File</span>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -69,6 +145,9 @@
                     </a>
                     <a href="/webp-converter" class="bg-green-200 text-green-700 p-2.5 rounded-lg hover:bg-green-300 transition-colors" title="WebP Converter">
                         <i class="fas fa-image"></i>
+                    </a>
+                    <a href="/stats" class="bg-blue-200 text-blue-700 p-2.5 rounded-lg hover:bg-blue-300 transition-colors" title="Storage Statistics">
+                        <i class="fas fa-chart-bar"></i>
                     </a>
                     <button id="logoutBtn" class="bg-gray-200 text-gray-700 p-2.5 rounded-lg hover:bg-red-200 hover:text-red-700 transition-colors" title="Keluar">
                         <i class="fas fa-sign-out-alt"></i>

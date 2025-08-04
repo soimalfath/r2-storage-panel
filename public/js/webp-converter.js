@@ -190,9 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
             xhr.addEventListener('load', () => {
                 if (xhr.status === 200) {
                     const response = JSON.parse(xhr.responseText);
-                    console.log('Response:', response);
                     if (response.success) {
-                        console.log('Success, showing result');
                         // The response structure is { success: true, data: { file: {...} } }
                         showSuccessResult(response.data.file);
                     } else {
@@ -257,7 +255,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 </h2>
                 
                 <div class="mb-6">
-                    <img id="resultPreview" src="${data.url}" alt="Converted image" class="rounded-lg shadow-md max-h-64 mx-auto">
+                    <div class="relative group cursor-pointer" onclick="previewImage('${data.url}', '${data.key}', '${formatFileSize(data.size)}')">
+                        <img id="resultPreview" src="${data.url}" alt="Converted image" class="rounded-lg shadow-md max-h-64 mx-auto transition-transform group-hover:scale-105">
+                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center rounded-lg">
+                            <div class="opacity-0 group-hover:opacity-100 transform group-hover:scale-100 scale-90 transition-all bg-white/80 text-black rounded-full h-12 w-12 flex items-center justify-center">
+                                <i class="fas fa-eye text-lg"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-center text-sm text-gray-500 mt-2">Click image to preview</p>
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -378,6 +384,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- Utility Functions ---
+    function previewImage(url, name, size) {
+        // Create a simple preview modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black bg-opacity-80';
+        modal.innerHTML = `
+            <div class="relative max-w-4xl max-h-full">
+                <img src="${url}" alt="${name}" class="max-w-full max-h-[90vh] object-contain rounded-lg">
+                <div class="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white px-3 py-1 rounded text-sm">
+                    ${name} (${size})
+                </div>
+                <button class="absolute -top-2 -right-2 bg-white text-black rounded-full h-10 w-10 flex items-center justify-center shadow-lg hover:bg-gray-200 transition-all">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        // Add event listeners
+        const closeBtn = modal.querySelector('button');
+        closeBtn.addEventListener('click', () => modal.remove());
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.remove();
+        });
+        
+        // Add to DOM
+        document.body.appendChild(modal);
+        
+        // Add escape key listener
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                modal.remove();
+                document.removeEventListener('keydown', handleEscape);
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
+    }
+
     function formatFileSize(bytes) {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
