@@ -119,6 +119,7 @@ GET  /auth/status    - Check authentication status
 ### Internal (Frontend) File Routes (Requires JWT Auth via Cookie)
 ```
 POST   /r2/upload              - Upload file (via web UI)
+POST   /r2/upload-webp         - Upload & convert image to WebP (via web UI)
 GET    /r2/files               - List files with pagination (web UI)
 GET    /r2/download/:key       - Download file
 GET    /r2/presigned/:key      - Get temporary URL
@@ -129,8 +130,13 @@ DELETE /r2/files/:key          - Delete file
 ```
 POST   /api/upload             - Upload single file (API key)
 POST   /api/upload-multiple    - Upload multiple files (max 10, API key)
-GET    /api/files              - List files with pagination (API key)
-DELETE /api/files/:key         - Delete file (API key)
+POST   /api/files/upload       - Upload single file (API key atau JWT)
+POST   /api/files/upload-webp  - Upload image and convert to WebP (API key; juga mendukung JWT via cookie)
+GET    /api/files              - List files with pagination (API key atau JWT)
+DELETE /api/files/:key         - Delete file (API key atau JWT)
+GET    /api/stats/storage      - Get detailed storage statistics (API key atau JWT)
+GET    /api/stats/quick        - Get quick storage stats (API key atau JWT)
+GET    /api/apikey             - Return configured API key (PUBLIC for docs/dev; jangan aktifkan di production)
 GET    /api/info               - API information
 ```
 
@@ -165,10 +171,17 @@ curl -X POST \
   -F "files=@/path/to/file1.jpg" \
   -F "files=@/path/to/file2.png" \
   http://localhost:3000/api/upload-multiple
+
+# Upload & convert to WebP (opsional param: quality [1-100], default 80)
+curl -X POST \
+  -H "X-API-Key: your-api-key" \
+  -F "image=@/path/to/image.png" \
+  -F "quality=80" \
+  http://localhost:3000/api/files/upload-webp
 ```
 
 ### API Documentation
-Akses dokumentasi API lengkap di: `http://localhost:3000/api-docs.html` (setelah login)
+Akses dokumentasi API lengkap di: `http://localhost:3000/api-docs.html` atau `http://localhost:3000/api-docs` (setelah login)
 
 ## Frontend Features
 
@@ -182,9 +195,13 @@ Frontend dapat diakses di `http://localhost:3000` dan menyediakan:
 - **Pagination**: Load more untuk performa optimal
 - **Image Preview**: Preview gambar dengan zoom in/out
 
+### Halaman Tambahan
+- **WebP Converter**: Halaman utilitas untuk konversi gambar ke WebP via UI di `/webp-converter` (backend: `POST /r2/upload-webp`)
+- **Stats Dashboard**: Ikhtisar kapasitas dan jumlah file di `/stats` (backend: `GET /api/stats/quick` dan `GET /api/stats/storage`)
+
 ### File Operations
 - **Public URL**: Copy direct link ke file
-- **Temporary URL**: Generate presigned URL (24 jam)
+- **Temporary URL**: Generate presigned URL (default 1 jam; dapat diubah dengan query `?expires=<detik>`, mis. 86400 untuk 24 jam)
 - **Download**: Download file langsung
 - **Delete**: Hapus file dengan konfirmasi
 
@@ -202,16 +219,19 @@ file-service/
 ├── api/                      # Vercel serverless functions
 │   ├── utils.js              # Shared utilities
 │   ├── r2-client.js          # R2 client for serverless
-│   ├── auth-middleware.js    # JWT middleware
-│   ├── auth-routes.js        # Authentication endpoints
+│   ├── auth.js               # Authentication endpoints handler (JWT login/refresh/logout/status)
 │   ├── r2.js                 # Internal file operations (JWT)
-│   ├── files.js              # API key file operations
-│   ├── upload.js             # API key upload
+│   ├── files.js              # API key/JWT file operations (list/delete/upload-webp)
+│   ├── upload.js             # API key upload (single)
 │   ├── upload-multiple.js    # API key upload multiple
+│   ├── stats.js              # Storage statistics endpoints (API key/JWT)
+│   ├── apikey.js             # Return configured API key (admin)
 │   └── info.js               # API info
 ├── public/
-│   ├── index.html            # Main UI
+│   ├── index.html            # Main UI (file manager)
 │   ├── login.html            # Login page
+│   ├── webp-converter.html   # WebP converter UI
+│   ├── stats.html            # Stats dashboard UI
 │   └── api-docs.html         # API documentation
 └── vercel.json               # Vercel configuration
 ```
@@ -298,3 +318,10 @@ vercel dev
 - **Storage**: Cloudflare R2 (S3-compatible)
 - **Security**: HTTP-only cookies, CORS, JWT refresh mechanism
 - **Deployment**: Vercel (Full-stack serverless)
+
+## Catatan & Limitasi Upload
+- Endpoint internal (web UI) `/r2/upload` menggunakan limit ukuran default 25MB per file.
+- Endpoint API serverless `/api/upload` dan `/api/upload-multiple` menggunakan limit 4MB per file (kompatibilitas Vercel Hobby).
+- Endpoint konversi WebP:
+  - `/r2/upload-webp` (UI internal) menerima image dan mengonversi ke WebP dengan parameter opsional `quality` (default 80).
+  - `/api/files/upload-webp` (API) fungsionalitas setara, memerlukan field `image` dan opsional `quality`.
