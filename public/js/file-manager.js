@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let zoomLevel = 1;
     let confirmCallback = null;
     let popperInstance = null; // Popper.js instance
+    let selectedFiles = new Set();
 
     // DOM Elements
     const dropArea = document.getElementById('dropArea');
@@ -24,6 +25,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingDiv = document.getElementById('loading-indicator');
     const emptyStateDiv = document.getElementById('empty-state');
     const loadMoreBtn = document.getElementById('loadMoreBtn');
+    
+    // Selection mode elements
+    const bulkActions = document.getElementById('bulkActions');
+    const selectAllToggleBtn = document.getElementById('selectAllToggleBtn');
+    const convertSelectedBtn = document.getElementById('convertSelectedBtn');
+    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+    const cancelSelectionBtn = document.getElementById('cancelSelectionBtn');
+    const convertModal = document.getElementById('convertModal');
+    const convertCount = document.getElementById('convertCount');
+    const convertQuality = document.getElementById('convertQuality');
+    const convertQualityValue = document.getElementById('convertQualityValue');
+    const deleteOriginalCheckbox = document.getElementById('deleteOriginalCheckbox');
+    const convertCancelBtn = document.getElementById('convertCancelBtn');
+    const convertConfirmBtn = document.getElementById('convertConfirmBtn');
     
     // Enhanced Preview Modal Elements
     const filePreviewModal = document.getElementById('file-preview-modal');
@@ -206,6 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function createFileCard(file) {
         const div = document.createElement('div');
         div.className = 'file-card bg-white rounded-lg shadow-sm hover:shadow-xl overflow-hidden flex flex-col';
+        div.dataset.fileKey = file.key;
         const isImage = file.contentType?.startsWith('image/');
         const fileSize = formatFileSize(file.size);
         const fileIcon = getFileIcon(file.contentType);
@@ -221,13 +237,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         <i class="${fileIcon} text-gray-400 text-4xl"></i>
                     `}
                 </div>
-                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center">
+                
+                <!-- Selection Checkbox - Always visible in corner -->
+                <div class="absolute top-2 left-2 z-10">
+                    <input type="checkbox" class="file-checkbox h-5 w-5 text-indigo-600 rounded cursor-pointer border-2 border-white shadow-lg bg-white/90 backdrop-blur-sm hover:scale-110 transition-transform" 
+                           data-file-key="${file.key}" data-file-type="${file.contentType}">
+                </div>
+                
+                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center action-buttons">
                     <button class="preview-btn opacity-0 group-hover:opacity-100 transform group-hover:scale-100 scale-90 transition-all bg-white/80 text-black rounded-full h-10 w-10" 
                             data-url="${file.url}" data-name="${file.key}" data-size="${fileSize}" data-type="${file.contentType}" title="Pratinjau">
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
-                 <div class="absolute top-2 right-2 flex flex-col gap-2">
+                 <div class="absolute top-2 right-2 flex flex-col gap-2 action-buttons">
                     <button class="share-btn bg-white/70 text-gray-800 backdrop-blur-sm p-1.5 rounded-full shadow hover:bg-white text-xs transition-transform hover:scale-110" data-file='${JSON.stringify(file)}' title="Bagikan">
                         <i class="fas fa-share-alt"></i>
                     </button>
@@ -247,6 +270,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         `;
+        
+        // Add checkbox change listener
+        const checkbox = div.querySelector('.file-checkbox');
+        
+        if (checkbox) {
+            checkbox.addEventListener('change', (e) => {
+                e.stopPropagation();
+                if (e.target.checked) {
+                    selectedFiles.add(file.key);
+                    div.classList.add('ring-2', 'ring-indigo-400');
+                } else {
+                    selectedFiles.delete(file.key);
+                    div.classList.remove('ring-2', 'ring-indigo-400');
+                }
+                updateBulkActionsState();
+            });
+            
+            // Prevent checkbox click from triggering other events
+            checkbox.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        }
+        
         return div;
     }
 
@@ -306,6 +352,20 @@ document.addEventListener('DOMContentLoaded', () => {
             hideConfirmModal();
         });
         confirmModal.addEventListener('click', (e) => e.target === confirmModal && hideConfirmModal());
+        
+        // Selection mode listeners
+        selectAllToggleBtn.addEventListener('click', toggleSelectAll);
+        cancelSelectionBtn.addEventListener('click', clearSelection);
+        convertSelectedBtn.addEventListener('click', showConvertModal);
+        deleteSelectedBtn.addEventListener('click', handleBulkDelete);
+        
+        // Convert modal listeners
+        convertQuality.addEventListener('input', () => {
+            convertQualityValue.textContent = convertQuality.value;
+        });
+        convertCancelBtn.addEventListener('click', hideConvertModal);
+        convertConfirmBtn.addEventListener('click', handleBulkConvert);
+        convertModal.addEventListener('click', (e) => e.target === convertModal && hideConvertModal());
     }
 
     // --- File Actions ---
@@ -725,6 +785,233 @@ document.addEventListener('DOMContentLoaded', () => {
         toast.innerHTML = `<div class="flex items-center gap-3"><i class="fas ${icons[type]} text-lg"></i><span>${message}</span></div>`;
         toastContainer.appendChild(toast);
         setTimeout(() => toast.remove(), 4000);
+    }
+
+    // --- Selection Mode Functions ---
+    function toggleSelectionMode(enable = null) {
+        selectionMode = enable !== null ? enable : !selectionMode;
+        
+        if (selectionMode) {
+            // Enable selection mode
+            selectionModeBtn.classList.add('bg-indigo-600', 'text-white');
+            selectionModeBtn.classList.remove('bg-purple-200', 'text-purple-700');
+            bulkActions.classList.remove('hidden');
+            
+            // Show checkboxes and add cursor pointer to cards
+            document.querySelectorAll('.selection-overlay').forEach(el => el.classList.remove('hidden'));
+            document.querySelectorAll('.action-buttons').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.file-card').forEach(card => {
+                card.classList.add('cursor-pointer', 'transition-all', 'hover:scale-105');
+            });
+        } else {
+            // Disable selection mode
+            selectionModeBtn.classList.remove('bg-indigo-600', 'text-white');
+            selectionModeBtn.classList.add('bg-purple-200', 'text-purple-700');
+            bulkActions.classList.add('hidden');
+            
+            // Hide checkboxes and clear selection
+            document.querySelectorAll('.selection-overlay').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.action-buttons').forEach(el => el.classList.remove('hidden'));
+            document.querySelectorAll('.file-checkbox').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.file-card').forEach(card => {
+                card.classList.remove('ring-4', 'ring-indigo-500', 'bg-indigo-50', 'cursor-pointer', 'hover:scale-105');
+            });
+            selectedFiles.clear();
+        }
+        
+        updateBulkActionsState();
+    }
+    
+    function updateBulkActionsState() {
+        const count = selectedFiles.size;
+        const totalFiles = document.querySelectorAll('.file-card').length;
+        
+        // Auto show/hide bulk actions based on selection
+        if (count > 0) {
+            bulkActions.classList.remove('hidden');
+        } else {
+            bulkActions.classList.add('hidden');
+        }
+        
+        convertSelectedBtn.disabled = count === 0;
+        deleteSelectedBtn.disabled = count === 0;
+        
+        // Update Select All button
+        if (count === totalFiles && totalFiles > 0) {
+            selectAllToggleBtn.innerHTML = `<i class="fas fa-times-circle"></i> <span class="hidden md:inline">None</span>`;
+            selectAllToggleBtn.title = 'Deselect All';
+        } else {
+            selectAllToggleBtn.innerHTML = `<i class="fas fa-check-double"></i> <span class="hidden md:inline">All</span>`;
+            selectAllToggleBtn.title = 'Select All';
+        }
+        
+        if (count > 0) {
+            convertSelectedBtn.innerHTML = `<i class="fas fa-magic"></i> <span class="hidden md:inline">Convert (${count})</span>`;
+            deleteSelectedBtn.innerHTML = `<i class="fas fa-trash"></i> <span class="hidden md:inline">Delete (${count})</span>`;
+        } else {
+            convertSelectedBtn.innerHTML = `<i class="fas fa-magic"></i> <span class="hidden md:inline">Convert</span>`;
+            deleteSelectedBtn.innerHTML = `<i class="fas fa-trash"></i> <span class="hidden md:inline">Delete</span>`;
+        }
+    }
+    
+    function clearSelection() {
+        document.querySelectorAll('.file-checkbox').forEach(cb => {
+            cb.checked = false;
+            cb.dispatchEvent(new Event('change'));
+        });
+    }
+    
+    function toggleSelectAll() {
+        const allCheckboxes = document.querySelectorAll('.file-checkbox');
+        const allSelected = selectedFiles.size === allCheckboxes.length && allCheckboxes.length > 0;
+        
+        allCheckboxes.forEach(cb => {
+            cb.checked = !allSelected;
+            cb.dispatchEvent(new Event('change'));
+        });
+    }
+    
+    function showConvertModal() {
+        if (selectedFiles.size === 0) {
+            showToast('Pilih minimal 1 file untuk dikonversi', 'warning');
+            return;
+        }
+        
+        // Filter only images
+        const imageFiles = Array.from(selectedFiles).filter(key => {
+            const checkbox = document.querySelector(`.file-checkbox[data-file-key="${key}"]`);
+            return checkbox && checkbox.dataset.fileType.startsWith('image/');
+        });
+        
+        if (imageFiles.length === 0) {
+            showToast('Tidak ada file gambar yang dipilih', 'warning');
+            return;
+        }
+        
+        convertCount.textContent = imageFiles.length;
+        convertModal.classList.remove('hidden');
+        setTimeout(() => convertModal.classList.remove('opacity-0'), 10);
+    }
+    
+    function hideConvertModal() {
+        convertModal.classList.add('opacity-0');
+        setTimeout(() => convertModal.classList.add('hidden'), 300);
+    }
+    
+    async function handleBulkConvert() {
+        const imageFiles = Array.from(selectedFiles).filter(key => {
+            const checkbox = document.querySelector(`.file-checkbox[data-file-key="${key}"]`);
+            return checkbox && checkbox.dataset.fileType.startsWith('image/');
+        });
+        
+        if (imageFiles.length === 0) return;
+        
+        hideConvertModal();
+        
+        const quality = convertQuality.value;
+        const deleteOriginal = deleteOriginalCheckbox.checked;
+        
+        showToast(`Memulai konversi ${imageFiles.length} file...`, 'info');
+        
+        let successCount = 0;
+        let errorCount = 0;
+        let skippedCount = 0;
+        
+        for (const fileKey of imageFiles) {
+            try {
+                const response = await fetchWithAutoRefresh('/api/convert-existing', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        keys: [fileKey],
+                        quality: parseInt(quality),
+                        replace: deleteOriginal
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Conversion failed');
+                
+                const result = await response.json();
+                if (result.success) {
+                    if (result.data.converted.length > 0) {
+                        successCount++;
+                    } else if (result.data.skippedCount > 0) {
+                        skippedCount++;
+                    } else if (result.data.errors.length > 0) {
+                        errorCount++;
+                    }
+                } else {
+                    errorCount++;
+                }
+            } catch (error) {
+                console.error(`Error converting ${fileKey}:`, error);
+                errorCount++;
+            }
+        }
+        
+        // Show results
+        if (successCount > 0) {
+            showToast(`${successCount} file berhasil dikonversi!`, 'success');
+            loadFiles(true); // Refresh file list
+        }
+        
+        if (skippedCount > 0) {
+            showToast(`${skippedCount} file dilewati (sudah WebP atau bukan gambar)`, 'info');
+        }
+        
+        if (errorCount > 0) {
+            showToast(`${errorCount} file gagal dikonversi`, 'error');
+        }
+        
+        if (successCount === 0 && skippedCount === 0 && errorCount === 0) {
+            showToast('Tidak ada file yang diproses', 'warning');
+        }
+        
+        clearSelection();
+    }
+    
+    function handleBulkDelete() {
+        if (selectedFiles.size === 0) {
+            showToast('Pilih minimal 1 file untuk dihapus', 'warning');
+            return;
+        }
+        
+        showConfirmModal(
+            'Hapus File Terpilih',
+            `Anda yakin ingin menghapus ${selectedFiles.size} file? Aksi ini permanen.`,
+            async () => {
+                const filesToDelete = Array.from(selectedFiles);
+                let successCount = 0;
+                let errorCount = 0;
+                
+                for (const fileKey of filesToDelete) {
+                    try {
+                        const response = await fetchWithAutoRefresh(`/r2/files/${encodeURIComponent(fileKey)}`, { method: 'DELETE' });
+                        const result = await response.json();
+                        
+                        if (result.success || result.message === 'File deleted successfully') {
+                            successCount++;
+                        } else {
+                            errorCount++;
+                        }
+                    } catch (error) {
+                        console.error(`Error deleting ${fileKey}:`, error);
+                        errorCount++;
+                    }
+                }
+                
+                if (successCount > 0) {
+                    showToast(`${successCount} file berhasil dihapus`, 'success');
+                    loadFiles(true);
+                }
+                
+                if (errorCount > 0) {
+                    showToast(`${errorCount} file gagal dihapus`, 'error');
+                }
+                
+                clearSelection();
+            }
+        );
     }
 
     // --- App Initialization ---

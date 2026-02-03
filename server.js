@@ -50,6 +50,11 @@ app.use('/api', async (req, res, next) => {
       return await uploadMultipleHandler(req, res);
     }
     
+    if (path === '/convert-existing') {
+      const convertExistingHandler = require('./api/convert-existing');
+      return await convertExistingHandler(req, res);
+    }
+    
     if (path === '/upload') {
       const uploadHandler = require('./api/upload');
       return await uploadHandler(req, res);

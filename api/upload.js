@@ -51,27 +51,55 @@ module.exports = async function handler(req, res) {
     
     // Read file buffer
     const fs = require('fs');
-    const fileBuffer = fs.readFileSync(file.filepath);
+    let fileBuffer = fs.readFileSync(file.filepath);
+    
+    // Check if file is an image and not already WebP
+    // We only convert jpg, jpeg, png, tiff, etc. to webp
+    let contentType = file.mimetype || 'application/octet-stream';
+    let fileKey = filename;
+    
+    if (contentType.startsWith('image/') && !contentType.includes('webp') && !contentType.includes('svg') && !contentType.includes('gif')) {
+      try {
+        const sharp = require('sharp');
+        const convertedBuffer = await sharp(fileBuffer)
+          .webp({ quality: 80 }) // Default quality 80
+          .toBuffer();
+          
+        fileBuffer = convertedBuffer;
+        contentType = 'image/webp';
+        
+        // Update filename extension to .webp
+        const nameParts = originalName.split('.');
+        const nameWithoutExt = nameParts.length > 1 ? nameParts.slice(0, -1).join('.') : originalName;
+        const newOriginalName = `${nameWithoutExt}.webp`;
+        fileKey = `${timestamp}-${newOriginalName}`;
+        
+        console.log(`Converted ${originalName} to ${newOriginalName}`);
+      } catch (conversionError) {
+        console.error('Image conversion failed, uploading original:', conversionError);
+        // Fallback to original file if conversion fails
+      }
+    }
     
     // Upload to R2
     await putObject({
       Bucket: process.env.R2_BUCKET_NAME,
-      Key: filename,
+      Key: fileKey,
       Body: fileBuffer,
-      ContentType: file.mimetype || 'application/octet-stream',
+      ContentType: contentType,
     });
     
     // Build file URLs
     const baseUrl = process.env.R2_PUBLIC_URL || '';
-    const publicUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${filename}` : null;
-    const downloadUrl = `/r2/download/${filename}`;
+    const publicUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${fileKey}` : null;
+    const downloadUrl = `/r2/download/${fileKey}`;
     
     return successResponse(res, {
-      filename: filename,
+      filename: fileKey,
       originalName: originalName,
-      key: filename,
-      size: file.size,
-      contentType: file.mimetype || 'application/octet-stream',
+      key: fileKey,
+      size: fileBuffer.length, // Use actual buffer length after conversion
+      contentType: contentType,
       publicUrl: publicUrl,
       downloadUrl: downloadUrl,
       uploadedAt: new Date().toISOString()

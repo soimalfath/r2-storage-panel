@@ -32,10 +32,32 @@ module.exports = async function handler(req, res) {
       const file = Array.isArray(files.file) ? files.file[0] : files.file;
       if (!file.size || file.size === 0) return errorResponse(res, 400, 'Empty file uploaded');
       const originalName = file.originalFilename || file.name || 'unknown';
-      const filename = originalName;
+      let filename = originalName;
       const fs = require('fs');
-      const fileBuffer = fs.readFileSync(file.filepath);
-      await putObject({ Bucket: process.env.R2_BUCKET_NAME, Key: filename, Body: fileBuffer, ContentType: file.mimetype || 'application/octet-stream' });
+      let fileBuffer = fs.readFileSync(file.filepath);
+      let contentType = file.mimetype || 'application/octet-stream';
+      
+      // Auto-convert to WebP if image
+      if (contentType.startsWith('image/') && !contentType.includes('webp') && !contentType.includes('svg') && !contentType.includes('gif')) {
+        try {
+          const sharp = require('sharp');
+          const convertedBuffer = await sharp(fileBuffer)
+            .webp({ quality: 80 })
+            .toBuffer();
+            
+          fileBuffer = convertedBuffer;
+          contentType = 'image/webp';
+          
+          const nameParts = originalName.split('.');
+          const nameWithoutExt = nameParts.length > 1 ? nameParts.slice(0, -1).join('.') : originalName;
+          filename = `${nameWithoutExt}.webp`;
+          console.log(`Auto-converted ${originalName} to ${filename}`);
+        } catch (e) {
+          console.error('Auto-conversion failed:', e);
+        }
+      }
+
+      await putObject({ Bucket: process.env.R2_BUCKET_NAME, Key: filename, Body: fileBuffer, ContentType: contentType });
       const baseUrl = process.env.R2_PUBLIC_URL || '';
       const publicUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${filename}` : null;
       // Samakan response dengan /api/files/upload: data: { file: {...} }
