@@ -50,6 +50,11 @@ app.use('/api', async (req, res, next) => {
       return await uploadMultipleHandler(req, res);
     }
     
+    if (path === '/convert-existing') {
+      const convertExistingHandler = require('./api/convert-existing');
+      return await convertExistingHandler(req, res);
+    }
+    
     if (path === '/upload') {
       const uploadHandler = require('./api/upload');
       return await uploadHandler(req, res);
@@ -109,6 +114,10 @@ app.get('/login', (req, res) => {
 
 app.get('/webp-converter', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'webp-converter.html'));
+});
+
+app.get('/mass-convert', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'mass-convert.html'));
 });
 
 app.get('/stats', (req, res) => {

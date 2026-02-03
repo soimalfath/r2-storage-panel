@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mass WebP Converter - Qiblat File Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/main.css">
+    <script src="/js/theme.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-[100] flex flex-col gap-3"></div>
+
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-5xl">
+        <header class="bg-white shadow-md rounded-xl p-4 sm:p-6 mb-8">
+            <div class="flex flex-wrap justify-between items-center gap-y-4">
+                <div class="flex items-center">
+                    <span class="text-white bg-purple-600 rounded-lg p-2 mr-3">
+                        <i class="fas fa-magic"></i>
+                    </span>
+                    <div>
+                        <h1 class="text-xl sm:text-2xl font-bold text-gray-800">
+                            Mass WebP Converter
+                        </h1>
+                        <p class="text-gray-500 text-sm hidden sm:block">Scan and convert existing images to WebP format.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <a href="/" class="bg-gray-200 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-300 transition-colors text-sm font-semibold flex items-center gap-2">
+                        <i class="fas fa-arrow-left"></i>
+                        <span class="hidden sm:inline">Back</span>
+                    </a>
+                    <button id="logoutBtn" class="bg-gray-200 text-gray-700 p-2.5 rounded-lg hover:bg-red-200 hover:text-red-700 transition-colors" title="Keluar">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div id="authSection" class="text-center py-20">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p class="text-gray-600">Checking authentication...</p>
+        </div>
+
+        <div id="loginSection" class="text-center py-20 hidden">
+            <div class="max-w-md mx-auto bg-white rounded-lg shadow-md p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Login Required</h2>
+                <p class="text-gray-600 mb-6">You need to login to use the Mass WebP converter.</p>
+                <a href="/login" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors inline-flex items-center gap-2">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Login
+                </a>
+            </div>
+        </div>
+
+        <div id="mainContent" class="hidden">
+            <!-- Configuration Section -->
+            <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+                <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                    <i class="fas fa-cogs text-gray-600"></i>
+                    Configuration
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Folder Prefix (Optional)</label>
+                        <input type="text" id="prefixInput" placeholder="e.g. products/ or images/" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-gray-50">
+                        <p class="text-xs text-gray-500 mt-1">Leave empty to scan the entire bucket</p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Batch Size</label>
+                        <select id="limitInput" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-gray-50">
+                            <option value="10">10 files per batch</option>
+                            <option value="20" selected>20 files per batch</option>
+                            <option value="50">50 files per batch</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Number of files to process per request</p>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex items-center p-4 bg-yellow-50 rounded-lg border border-yellow-100">
+                    <input type="checkbox" id="replaceCheckbox" class="h-5 w-5 text-purple-600 focus:ring-purple-500 border-gray-300 rounded mr-3">
+                    <div>
+                        <label for="replaceCheckbox" class="font-medium text-gray-800 block">Delete original files</label>
+                        <p class="text-sm text-gray-600">If checked, original images (jpg, png) will be deleted after successful conversion. <span class="font-bold text-red-500">Warning: destructive action.</span></p>
+                    </div>
+                </div>
+                
+                <div class="mt-8 flex gap-4">
+                    <button id="startBtn" class="flex-1 bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors font-bold shadow-lg shadow-purple-200 flex items-center justify-center gap-2">
+                        <i class="fas fa-play"></i>
+                        Start Conversion
+                    </button>
+                    <button id="stopBtn" class="bg-red-500 text-white py-3 px-6 rounded-lg hover:bg-red-600 transition-colors font-bold shadow-lg shadow-red-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fas fa-stop"></i>
+                        Stop
+                    </button>
+                </div>
+            </div>
+
+            <!-- Progress & Stats -->
+            <div id="statsSection" class="hidden">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                        <div class="text-gray-500 text-sm font-medium">Scanned</div>
+                        <div id="statScanned" class="text-2xl font-bold text-gray-800">0</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                        <div class="text-green-600 text-sm font-medium">Converted</div>
+                        <div id="statConverted" class="text-2xl font-bold text-green-600">0</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                        <div class="text-blue-500 text-sm font-medium">Skipped</div>
+                        <div id="statSkipped" class="text-2xl font-bold text-blue-600">0</div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                        <div class="text-red-500 text-sm font-medium">Errors</div>
+                        <div id="statErrors" class="text-2xl font-bold text-red-600">0</div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-gray-800">Processing Logs</h3>
+                        <div class="flex items-center gap-2">
+                             <div id="processingIndicator" class="hidden items-center gap-2 text-purple-600 text-sm font-medium animate-pulse">
+                                <i class="fas fa-circle-notch fa-spin"></i> Processing...
+                            </div>
+                            <button id="clearLogsBtn" class="text-xs text-gray-500 hover:text-gray-700 underline">Clear Logs</button>
+                        </div>
+                    </div>
+                    
+                    <div id="logContainer" class="bg-gray-900 text-gray-300 font-mono text-xs md:text-sm p-4 rounded-lg h-96 overflow-y-auto space-y-1">
+                        <div class="text-gray-500 italic">Ready to start...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/mass-convert.js"></script>
+</body>
+</html>
