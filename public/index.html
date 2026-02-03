@@ -107,6 +107,41 @@
         </div>
     </div>
 
+    <!-- Convert Options Modal -->
+    <div id="convertModal" class="fixed inset-0 z-[95] flex items-center justify-center p-4 hidden opacity-0">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">Convert to WebP</h3>
+            <p class="text-gray-600 mb-4">Convert <span id="convertCount" class="font-bold text-indigo-600">0</span> selected image(s) to WebP format.</p>
+            
+            <div class="space-y-4 mb-6">
+                <div>
+                    <label for="convertQuality" class="block text-sm font-medium text-gray-700 mb-2">
+                        Quality: <span id="convertQualityValue" class="font-bold text-indigo-600">80</span>%
+                    </label>
+                    <input type="range" id="convertQuality" class="w-full" min="10" max="100" value="80">
+                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                        <span>Smaller (10%)</span>
+                        <span>Best (100%)</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center p-3 bg-yellow-50 rounded-lg border border-yellow-100">
+                    <input type="checkbox" id="deleteOriginalCheckbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded mr-3">
+                    <label for="deleteOriginalCheckbox" class="text-sm text-gray-700">
+                        Delete original files after conversion
+                    </label>
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-3">
+                <button id="convertCancelBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Cancel</button>
+                <button id="convertConfirmBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                    <i class="fas fa-magic mr-2"></i>Convert
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="confirm-modal" class="fixed inset-0 z-[95] flex items-center justify-center p-4 hidden opacity-0">
         <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
             <h3 id="confirm-title" class="text-lg font-bold text-gray-800">Anda Yakin?</h3>
@@ -140,14 +175,31 @@
                         <span class="hidden sm:inline">Unggah File</span>
                         <span class="sm:hidden">Unggah</span>
                     </button>
+                    
+                    <!-- Bulk Actions - Auto show when files selected -->
+                    <div id="bulkActions" class="hidden flex items-center gap-2 border-l-2 border-gray-300 pl-2">
+                        <button id="selectAllToggleBtn" class="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm font-semibold flex items-center gap-2" title="Select All">
+                            <i class="fas fa-check-double"></i>
+                            <span class="hidden md:inline">All</span>
+                        </button>
+                        <button id="convertSelectedBtn" class="bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm font-semibold flex items-center gap-2" title="Convert Selected to WebP">
+                            <i class="fas fa-magic"></i>
+                            <span class="hidden md:inline">Convert</span>
+                        </button>
+                        <button id="deleteSelectedBtn" class="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm font-semibold flex items-center gap-2" title="Delete Selected">
+                            <i class="fas fa-trash"></i>
+                            <span class="hidden md:inline">Delete</span>
+                        </button>
+                        <button id="cancelSelectionBtn" class="bg-gray-500 text-white px-3 py-2 rounded-lg hover:bg-gray-600 transition-colors text-sm" title="Clear Selection">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
                     <a href="/api-docs" class="bg-gray-200 text-gray-700 p-2.5 rounded-lg hover:bg-gray-300 transition-colors" title="Dokumentasi API">
                         <i class="fas fa-code"></i>
                     </a>
                     <a href="/webp-converter" class="bg-green-200 text-green-700 p-2.5 rounded-lg hover:bg-green-300 transition-colors" title="WebP Converter">
                         <i class="fas fa-image"></i>
-                    </a>
-                    <a href="/mass-convert" class="bg-purple-200 text-purple-700 p-2.5 rounded-lg hover:bg-purple-300 transition-colors" title="Mass WebP Converter">
-                        <i class="fas fa-magic"></i>
                     </a>
                     <a href="/stats" class="bg-blue-200 text-blue-700 p-2.5 rounded-lg hover:bg-blue-300 transition-colors" title="Storage Statistics">
                         <i class="fas fa-chart-bar"></i>

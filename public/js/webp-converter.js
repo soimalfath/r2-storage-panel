@@ -1,6 +1,6 @@
 /**
- * WebP Converter JavaScript
- * Handles image conversion to WebP format
+ * WebP Converter JavaScript - Multiple Files with Selection
+ * Handles image conversion to WebP format with checkbox selection
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -8,74 +8,52 @@ document.addEventListener('DOMContentLoaded', () => {
     const dropArea = document.getElementById('dropArea');
     const fileInput = document.getElementById('fileInput');
     const browseButton = document.getElementById('browseButton');
-    const previewContainer = document.getElementById('filePreview'); // Fixed ID
+    const previewContainer = document.getElementById('filePreview');
     const previewContent = document.getElementById('previewContent');
     const qualitySlider = document.getElementById('qualitySlider');
     const qualityValue = document.getElementById('qualityValue');
     const uploadButton = document.getElementById('uploadButton');
-    const uploadSpinner = document.getElementById('uploadSpinner');
-    const uploadText = document.getElementById('uploadText');
-    const progressContainer = document.getElementById('progressSection'); // Fixed ID
+    const progressContainer = document.getElementById('progressSection');
     const progressBar = document.getElementById('progressBar');
     const progressText = document.getElementById('progressText');
-    const resultContainer = document.getElementById('resultSection'); // Fixed ID
+    const resultContainer = document.getElementById('resultSection');
+    const selectedCount = document.getElementById('selectedCount');
     
     // State
-    let selectedFile = null;
+    let selectedFiles = [];
     let isUploading = false;
     
     // --- Authentication ---
     async function checkAuth() {
         try {
             const response = await fetch('/auth/status', { credentials: 'include' });
-
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
-            }
-
+            if (!response.ok) throw new Error('Auth check failed');
             const data = await response.json();
-
+            
             if (data.success && data.data && data.data.authenticated) {
-                // User is authenticated
-                localStorage.setItem('userData', JSON.stringify(data.data));
                 return true;
             } else {
-                // User is not authenticated, redirect to login
-                localStorage.removeItem('userData');
-                window.location.href = '/loginW';
+                window.location.href = '/login?redirect=/webp-converter';
                 return false;
             }
         } catch (error) {
-            console.error('Authentication check failed:', error);
-            localStorage.removeItem('userData');
-            showToast('Sesi Anda telah berakhir. Mengalihkan ke halaman login.', 'error');
-            setTimeout(() => {
-                window.location.href = '/login';
-            }, 1500);
+            console.error('Auth error:', error);
+            window.location.href = '/login';
             return false;
         }
     }
 
     async function handleLogout() {
         try {
-            const response = await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
-            const data = await response.json();
-            if (data.success) {
-                // Hapus data user dari localStorage
-                localStorage.removeItem('userData');
-                showToast('Berhasil keluar!', 'success');
-                setTimeout(() => window.location.href = '/login', 1000);
-            } else {
-                showToast('Gagal keluar: ' + (data.error || 'Kesalahan tidak diketahui'), 'error');
-            }
+            await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
+            window.location.href = '/login';
         } catch (error) {
-            showToast('Gagal keluar: ' + error.message, 'error');
+            console.error('Logout failed:', error);
         }
     }
     
     // --- File Selection ---
     function setupEventListeners() {
-        // File selection
         browseButton.addEventListener('click', () => fileInput.click());
         fileInput.addEventListener('change', handleFileSelect);
         
@@ -95,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dropArea.classList.remove('drag-active');
             
             if (e.dataTransfer.files.length > 0) {
-                handleFile(e.dataTransfer.files[0]);
+                handleFiles(Array.from(e.dataTransfer.files));
             }
         });
         
@@ -105,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         // Upload button
-        uploadButton.addEventListener('click', uploadImage);
+        uploadButton.addEventListener('click', uploadSelectedImages);
         
         // Logout button
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
@@ -113,313 +91,259 @@ document.addEventListener('DOMContentLoaded', () => {
     
     function handleFileSelect(e) {
         if (e.target.files.length > 0) {
-            handleFile(e.target.files[0]);
+            handleFiles(Array.from(e.target.files));
         }
     }
     
-    function handleFile(file) {
-        // Check if file is an image
-        if (!file.type.match('image.*')) {
+    function handleFiles(files) {
+        // Filter only images
+        const imageFiles = files.filter(file => file.type.match('image.*'));
+        
+        if (imageFiles.length === 0) {
             showToast('Hanya file gambar yang diperbolehkan', 'error');
             return;
         }
         
-        // Check file size (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
-            showToast('Ukuran file terlalu besar (maksimal 10MB)', 'error');
-            return;
-        }
+        // Check file sizes
+        const validFiles = imageFiles.filter(file => {
+            if (file.size > 10 * 1024 * 1024) {
+                showToast(`${file.name} terlalu besar (maksimal 10MB)`, 'warning');
+                return false;
+            }
+            return true;
+        });
         
-        selectedFile = file;
+        if (validFiles.length === 0) return;
         
-        // Show preview
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            // Create preview content
-            previewContent.innerHTML = `
-                <div class="flex-shrink-0">
-                    <img src="${e.target.result}" alt="Preview" class="h-24 w-auto rounded-lg shadow-sm">
-                </div>
-                <div class="flex-1">
-                    <p class="font-medium text-gray-800">${file.name}</p>
-                    <p class="text-sm text-gray-500">${formatFileSize(file.size)}</p>
-                    <p class="text-sm text-gray-500">${file.type}</p>
-                </div>
-            `;
-            previewContainer.classList.remove('hidden');
-            uploadButton.disabled = false;
-            
-            // Show quality section
-            document.getElementById('qualitySection').classList.remove('hidden');
-        };
-        reader.readAsDataURL(file);
+        selectedFiles = validFiles;
+        displayFilePreviews();
         
-        // Update UI
+        // Show preview and quality sections
+        previewContainer.classList.remove('hidden');
+        document.getElementById('qualitySection').classList.remove('hidden');
+        
+        // Hide drop area
         dropArea.classList.add('hidden');
     }
     
+    function displayFilePreviews() {
+        previewContent.innerHTML = '';
+        
+        selectedFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const card = createFileCard(file, index, e.target.result);
+                previewContent.appendChild(card);
+                updateSelectedCount();
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+    
+    function createFileCard(file, index, dataUrl) {
+        const div = document.createElement('div');
+        div.className = 'relative bg-white rounded-lg shadow-sm border-2 border-gray-200 overflow-hidden hover:border-indigo-400 transition-all';
+        
+        div.innerHTML = `
+            <div class="absolute top-2 left-2 z-10">
+                <input type="checkbox" class="file-checkbox h-5 w-5 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer" 
+                       data-index="${index}" checked>
+            </div>
+            <div class="aspect-square w-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                <img src="${dataUrl}" alt="${file.name}" class="w-full h-full object-cover">
+            </div>
+            <div class="p-2">
+                <p class="text-xs font-medium text-gray-800 truncate" title="${file.name}">${file.name}</p>
+                <p class="text-xs text-gray-500">${formatFileSize(file.size)}</p>
+            </div>
+        `;
+        
+        // Add checkbox listener
+        const checkbox = div.querySelector('.file-checkbox');
+        checkbox.addEventListener('change', updateSelectedCount);
+        
+        return div;
+    }
+    
+    function updateSelectedCount() {
+        const checked = document.querySelectorAll('.file-checkbox:checked').length;
+        selectedCount.textContent = checked;
+        uploadButton.disabled = checked === 0;
+    }
+    
     // --- Upload & Convert ---
-    async function uploadImage() {
-        if (!selectedFile || isUploading) return;
+    async function uploadSelectedImages() {
+        if (isUploading) return;
+        
+        const checkedBoxes = document.querySelectorAll('.file-checkbox:checked');
+        if (checkedBoxes.length === 0) {
+            showToast('Pilih minimal 1 gambar untuk dikonversi', 'warning');
+            return;
+        }
         
         isUploading = true;
         setUploadingState(true);
         
         // Show progress container
         progressContainer.classList.remove('hidden');
-        progressBar.style.width = '0%';
-        progressText.textContent = '0%';
+        resultContainer.classList.add('hidden');
         
-        // Create FormData
-        const formData = new FormData();
-        formData.append('image', selectedFile);
-        formData.append('quality', qualitySlider.value);
+        const filesToUpload = Array.from(checkedBoxes).map(cb => {
+            const index = parseInt(cb.dataset.index);
+            return selectedFiles[index];
+        });
         
-        try {
-            // Create XMLHttpRequest to track progress
-            const xhr = new XMLHttpRequest();
+        const quality = qualitySlider.value;
+        const results = [];
+        const errors = [];
+        
+        for (let i = 0; i < filesToUpload.length; i++) {
+            const file = filesToUpload[i];
+            const progress = Math.round(((i + 1) / filesToUpload.length) * 100);
             
-            xhr.upload.addEventListener('progress', (e) => {
-                if (e.lengthComputable) {
-                    const percentComplete = Math.round((e.loaded / e.total) * 100);
-                    progressBar.style.width = percentComplete + '%';
-                    progressText.textContent = percentComplete + '%';
+            progressBar.style.width = progress + '%';
+            progressText.textContent = `Converting ${i + 1}/${filesToUpload.length}: ${file.name}`;
+            
+            try {
+                const formData = new FormData();
+                formData.append('image', file);
+                formData.append('quality', quality);
+                
+                const response = await fetch('/r2/upload-webp', {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Server error: ${response.status}`);
                 }
-            });
-            
-            xhr.addEventListener('load', () => {
-                if (xhr.status === 200) {
-                    const response = JSON.parse(xhr.responseText);
-                    if (response.success) {
-                        // The response structure is { success: true, data: { file: {...} } }
-                        showSuccessResult(response.data.file);
-                    } else {
-                        showErrorResult(response.error || 'Konversi gagal');
-                    }
+                
+                const data = await response.json();
+                if (data.success && data.data && data.data.file) {
+                    results.push(data.data.file);
                 } else {
-                    showErrorResult('Kesalahan server: ' + xhr.status);
+                    throw new Error('Invalid response format');
                 }
-                isUploading = false;
-                setUploadingState(false);
-            });
-            
-            xhr.addEventListener('error', () => {
-                showErrorResult('Koneksi gagal');
-                isUploading = false;
-                setUploadingState(false);
-            });
-            
-            xhr.addEventListener('abort', () => {
-                showErrorResult('Unggahan dibatalkan');
-                isUploading = false;
-                setUploadingState(false);
-            });
-            
-            // Open connection and send data
-            xhr.open('POST', '/r2/upload-webp', true);
-            xhr.withCredentials = true;
-            xhr.send(formData);
-            
-        } catch (error) {
-            showErrorResult(error.message);
-            isUploading = false;
-            setUploadingState(false);
+                
+            } catch (error) {
+                console.error(`Error converting ${file.name}:`, error);
+                errors.push({ file: file.name, error: error.message });
+            }
         }
+        
+        // Show results
+        showResults(results, errors);
+        isUploading = false;
+        setUploadingState(false);
     }
     
     function setUploadingState(isLoading) {
         if (isLoading) {
             uploadButton.disabled = true;
-            uploadButton.innerHTML = '<i class="fas fa-spinner animate-spin mr-2"></i>Mengonversi...';
+            uploadButton.innerHTML = '<i class="fas fa-spinner animate-spin mr-2"></i>Converting...';
         } else {
-            uploadButton.disabled = false;
-            uploadButton.innerHTML = '<i class="fas fa-magic mr-2"></i>Convert & Upload to CDN';
+            uploadButton.innerHTML = '<i class="fas fa-magic mr-2"></i>Convert Selected & Upload to CDN';
+            updateSelectedCount();
         }
     }
     
-    function showSuccessResult(data) {
-        // Hide progress container
+    function showResults(results, errors) {
         progressContainer.classList.add('hidden');
-        
-        // Show result container
         resultContainer.classList.remove('hidden');
         
-        // Create result content if it doesn't exist
         const resultContent = document.getElementById('resultContent');
-        if (resultContent) {
-            // Clear previous content
-            resultContent.innerHTML = `
+        let html = '';
+        
+        if (results.length > 0) {
+            html += `
                 <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <i class="fas fa-check-circle text-green-600"></i>
                     Conversion Successful
                 </h2>
-                
-                <div class="mb-6">
-                    <div class="relative group cursor-pointer" onclick="previewImage('${data.url}', '${data.key}', '${formatFileSize(data.size)}')">
-                        <img id="resultPreview" src="${data.url}" alt="Converted image" class="rounded-lg shadow-md max-h-64 mx-auto transition-transform group-hover:scale-105">
-                        <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all flex items-center justify-center rounded-lg">
-                            <div class="opacity-0 group-hover:opacity-100 transform group-hover:scale-100 scale-90 transition-all bg-white/80 text-black rounded-full h-12 w-12 flex items-center justify-center">
-                                <i class="fas fa-eye text-lg"></i>
+                <p class="text-gray-600 mb-4">${results.length} image(s) converted successfully!</p>
+                <div class="space-y-4">
+            `;
+            
+            results.forEach(file => {
+                const reduction = file.originalSize ? ((file.originalSize - file.size) / file.originalSize * 100).toFixed(2) : '0';
+                html += `
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-start gap-4">
+                            <img src="${file.url}" alt="${file.key}" class="w-24 h-24 object-cover rounded">
+                            <div class="flex-1">
+                                <h3 class="font-semibold text-gray-800">${file.originalName}</h3>
+                                <p class="text-sm text-gray-600">Converted to: ${file.convertedName || file.key}</p>
+                                <p class="text-sm text-green-600 font-medium">Size reduced by ${reduction}%</p>
+                                <div class="flex gap-2 mt-2">
+                                    <button onclick="copyToClipboard('${file.url}')" class="text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded hover:bg-indigo-200">
+                                        <i class="fas fa-copy mr-1"></i> Copy URL
+                                    </button>
+                                    <a href="${file.url}" download class="text-xs bg-green-100 text-green-700 px-3 py-1 rounded hover:bg-green-200">
+                                        <i class="fas fa-download mr-1"></i> Download
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <p class="text-center text-sm text-gray-500 mt-2">Click image to preview</p>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <h3 class="font-semibold text-gray-800 mb-3">Original Image</h3>
-                        <ul class="space-y-2">
-                            <li class="flex justify-between">
-                                <span class="text-gray-600">Filename:</span>
-                                <span id="originalName" class="font-medium">${data.originalName}</span>
-                            </li>
-                            <li class="flex justify-between">
-                                <span class="text-gray-600">Size:</span>
-                                <span id="originalSize" class="font-medium">${data.originalSize ? formatFileSize(data.originalSize) : 'Unknown'}</span>
-                            </li>
-                            <li class="flex justify-between">
-                                <span class="text-gray-600">Format:</span>
-                                <span id="originalFormat" class="font-medium">${getFileExtension(data.originalName).toUpperCase()}</span>
-                            </li>
-                        </ul>
-                    </div>
-                    
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <h3 class="font-semibold text-gray-800 mb-3">Converted Image</h3>
-                        <ul class="space-y-2">
-                            <li class="flex justify-between">
-                                <span class="text-gray-600">Filename:</span>
-                                <span id="convertedName" class="font-medium">${data.key}</span>
-                            </li>
-                            <li class="flex justify-between">
-                                <span class="text-gray-600">Size:</span>
-                                <span id="convertedSize" class="font-medium">${formatFileSize(data.size)}</span>
-                            </li>
-                            <li class="flex justify-between">
-                                <span class="text-gray-600">Format:</span>
-                                <span id="convertedFormat" class="font-medium">WebP</span>
-                            </li>
-                            <li class="flex justify-between">
-                                <span class="text-gray-600">Reduction:</span>
-                                <span id="sizeReduction" class="font-medium text-green-600">${data.originalSize ? ((data.originalSize - data.size) / data.originalSize * 100).toFixed(2) : '0'}%</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <div class="bg-gray-50 rounded-lg p-4 mb-6">
-                    <h3 class="font-semibold text-gray-800 mb-3">CDN URL</h3>
-                    <div class="flex">
-                        <a id="fileUrl" href="${data.url}" target="_blank" class="flex-1 bg-white border border-gray-300 rounded-l-lg py-2 px-3 text-sm overflow-x-auto whitespace-nowrap">${data.url}</a>
-                        <button id="copyUrlBtn" class="bg-indigo-600 text-white px-3 rounded-r-lg hover:bg-indigo-700 transition-colors">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="flex justify-between">
-                    <button id="resetBtn" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
-                        <i class="fas fa-redo mr-2"></i>Convert Another
-                    </button>
-                    <a href="${data.url}" download class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                        <i class="fas fa-download mr-2"></i>Download
-                    </a>
-                </div>
-            `;
+                `;
+            });
             
-            // Add event listener to the new copy button
-            const copyUrlBtn = document.getElementById('copyUrlBtn');
-            if (copyUrlBtn) {
-                copyUrlBtn.addEventListener('click', () => {
-                    const fileUrl = document.getElementById('fileUrl');
-                    if (fileUrl) {
-                        copyToClipboard(fileUrl.textContent);
-                    }
-                });
-            }
-            
-            // Add event listener to reset button
-            const resetBtn = document.getElementById('resetBtn');
-            if (resetBtn) {
-                resetBtn.addEventListener('click', resetUpload);
-            }
+            html += '</div>';
         }
         
-        // Show success message
-        showToast('Konversi berhasil!', 'success');
-    }
-    
-    function showErrorResult(errorMessage) {
-        // Hide progress container
-        progressContainer.classList.add('hidden');
+        if (errors.length > 0) {
+            html += `
+                <div class="mt-6">
+                    <h3 class="text-lg font-bold text-red-600 mb-2">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        ${errors.length} Error(s)
+                    </h3>
+                    <div class="space-y-2">
+            `;
+            
+            errors.forEach(err => {
+                html += `
+                    <div class="bg-red-50 border border-red-200 rounded p-3">
+                        <p class="text-sm font-medium text-red-800">${err.file}</p>
+                        <p class="text-xs text-red-600">${err.error}</p>
+                    </div>
+                `;
+            });
+            
+            html += '</div></div>';
+        }
         
-        // Show error message
-        showToast(errorMessage, 'error');
+        html += `
+            <div class="mt-6 flex justify-center">
+                <button id="resetBtn" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+                    <i class="fas fa-redo mr-2"></i>Convert More Images
+                </button>
+            </div>
+        `;
         
-        // Reset upload button
-        setUploadingState(false);
+        resultContent.innerHTML = html;
+        
+        // Add reset listener
+        document.getElementById('resetBtn').addEventListener('click', resetUpload);
     }
     
     function resetUpload() {
-        // Reset state
-        selectedFile = null;
-        isUploading = false;
-        
-        // Reset UI
+        selectedFiles = [];
+        fileInput.value = '';
+        previewContent.innerHTML = '';
         previewContainer.classList.add('hidden');
         resultContainer.classList.add('hidden');
         progressContainer.classList.add('hidden');
         document.getElementById('qualitySection').classList.add('hidden');
         dropArea.classList.remove('hidden');
-        
-        // Reset form
-        fileInput.value = '';
         qualitySlider.value = 80;
         qualityValue.textContent = '80';
-        
-        // Reset buttons
-        uploadButton.disabled = true;
         setUploadingState(false);
     }
     
     // --- Utility Functions ---
-    function previewImage(url, name, size) {
-        // Create a simple preview modal
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black bg-opacity-80';
-        modal.innerHTML = `
-            <div class="relative max-w-4xl max-h-full">
-                <img src="${url}" alt="${name}" class="max-w-full max-h-[90vh] object-contain rounded-lg">
-                <div class="absolute bottom-2 left-2 bg-black bg-opacity-70 text-white px-3 py-1 rounded text-sm">
-                    ${name} (${size})
-                </div>
-                <button class="absolute -top-2 -right-2 bg-white text-black rounded-full h-10 w-10 flex items-center justify-center shadow-lg hover:bg-gray-200 transition-all">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        `;
-        
-        // Add event listeners
-        const closeBtn = modal.querySelector('button');
-        closeBtn.addEventListener('click', () => modal.remove());
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.remove();
-        });
-        
-        // Add to DOM
-        document.body.appendChild(modal);
-        
-        // Add escape key listener
-        const handleEscape = (e) => {
-            if (e.key === 'Escape') {
-                modal.remove();
-                document.removeEventListener('keydown', handleEscape);
-            }
-        };
-        document.addEventListener('keydown', handleEscape);
-    }
-
     function formatFileSize(bytes) {
         if (bytes === 0) return '0 Bytes';
         const k = 1024;
@@ -428,19 +352,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
     }
     
-    function getFileExtension(filename) {
-        return filename.split('.').pop().toLowerCase();
-    }
-    
-    function copyToClipboard(text) {
+    window.copyToClipboard = function(text) {
         navigator.clipboard.writeText(text).then(() => {
             showToast('URL berhasil disalin!', 'success');
         }).catch(() => {
             showToast('Gagal menyalin URL', 'error');
         });
-    }
-    
-    // Event listeners for copy buttons are now added dynamically in showSuccessResult function
+    };
     
     function showToast(message, type = 'info') {
         const toastContainer = document.getElementById('toast-container');
@@ -481,7 +399,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 loginSection.classList.add('hidden');
                 setupEventListeners();
             } else {
-                // checkAuth already handles redirection, but as a fallback:
                 authSection.classList.add('hidden');
                 mainContent.classList.add('hidden');
                 loginSection.classList.remove('hidden');

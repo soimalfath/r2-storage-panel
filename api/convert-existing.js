@@ -36,33 +36,58 @@ module.exports = async function handler(req, res) {
     // Check for admin/authorized user if needed context provided
     // For now assuming any valid user can trigger this (or restrict to admin)
 
-    const { limit = 20, continuationToken, replace = false, prefix = '' } = req.body;
+    const { limit = 20, continuationToken, replace = false, prefix = '', keys = null, quality = 80 } = req.body;
     
-    // List objects
-    const listParams = {
-      Bucket: process.env.R2_BUCKET_NAME,
-      MaxKeys: limit,
-      ContinuationToken: continuationToken,
-      Prefix: prefix
-    };
+    let objectsToProcess = [];
+    let nextContinuationToken = null;
+    
+    // If specific keys are provided, process only those
+    if (keys && Array.isArray(keys) && keys.length > 0) {
+      // Get metadata for specific keys
+      for (const key of keys) {
+        try {
+          const headObj = await getObject({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: key
+          });
+          objectsToProcess.push({
+            Key: key,
+            Size: headObj.ContentLength || 0
+          });
+        } catch (err) {
+          console.error(`Failed to get metadata for ${key}:`, err);
+        }
+      }
+    } else {
+      // List objects (original behavior)
+      const listParams = {
+        Bucket: process.env.R2_BUCKET_NAME,
+        MaxKeys: limit,
+        ContinuationToken: continuationToken,
+        Prefix: prefix
+      };
 
-    const listResult = await listObjects(listParams);
+      const listResult = await listObjects(listParams);
+      
+      if (!listResult.Contents || listResult.Contents.length === 0) {
+        return successResponse(res, { 
+          message: 'No files found to process',
+          converted: [], 
+          errors: [], 
+          skipped: [],
+          nextContinuationToken: null 
+        });
+      }
+      
+      objectsToProcess = listResult.Contents;
+      nextContinuationToken = listResult.NextContinuationToken;
+    }
     
     const converted = [];
     const errors = [];
     const skipped = [];
-    
-    if (!listResult.Contents || listResult.Contents.length === 0) {
-      return successResponse(res, { 
-        message: 'No files found to process',
-        converted, 
-        errors, 
-        skipped,
-        nextContinuationToken: null 
-      });
-    }
 
-    for (const object of listResult.Contents) {
+    for (const object of objectsToProcess) {
       const key = object.Key;
       
       // Skip if already webp
@@ -89,9 +114,9 @@ module.exports = async function handler(req, res) {
         
         const buffer = await streamToBuffer(getObj.Body);
         
-        // Convert to WebP
+        // Convert to WebP with specified quality
         const convertedBuffer = await sharp(buffer)
-          .webp({ quality: 80 })
+          .webp({ quality: parseInt(quality) })
           .toBuffer();
           
         // Construct new key
@@ -110,18 +135,21 @@ module.exports = async function handler(req, res) {
         });
         
         // Delete old object if replace is true
+        let wasDeleted = false;
         if (replace) {
            await deleteObject({
              Bucket: process.env.R2_BUCKET_NAME,
              Key: key
            });
+           wasDeleted = true;
         }
         
         converted.push({
           oldKey: key,
           newKey: newKey,
           originalSize: object.Size,
-          newSize: convertedBuffer.length
+          newSize: convertedBuffer.length,
+          deleted: wasDeleted
         });
         
       } catch (err) {
@@ -134,9 +162,9 @@ module.exports = async function handler(req, res) {
       converted,
       errors,
       skippedCount: skipped.length,
-      nextContinuationToken: listResult.NextContinuationToken,
-      isTruncated: listResult.IsTruncated
-    }, `Processed ${listResult.Contents.length} files. Converted: ${converted.length}, Errors: ${errors.length}`);
+      nextContinuationToken: nextContinuationToken,
+      isTruncated: !!nextContinuationToken
+    }, `Processed ${objectsToProcess.length} files. Converted: ${converted.length}, Errors: ${errors.length}`);
 
   } catch (error) {
     console.error('Convert Existing Error:', error);

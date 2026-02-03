@@ -116,10 +116,6 @@ app.get('/webp-converter', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'webp-converter.html'));
 });
 
-app.get('/mass-convert', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'mass-convert.html'));
-});
-
 app.get('/stats', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'stats.html'));
 });
