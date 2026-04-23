@@ -144,7 +144,17 @@ async function loadCfBuckets() {
     const res = await fetch('/api/buckets/cf-list');
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to fetch from Cloudflare');
-    const buckets = data.data || [];
+    const { buckets = [], hasSharedCreds = false } = data.data || {};
+
+    // Show hint based on shared creds availability
+    const hint = document.getElementById('import-hint');
+    if (hint) {
+      hint.innerHTML = hasSharedCreds
+        ? '<i class="fas fa-bolt mr-1 text-green-400"></i> Shared credentials detected — click any bucket to import instantly.'
+        : '<i class="fas fa-info-circle mr-1 text-blue-400"></i> No shared credentials. You\'ll need to enter Access Key + Secret Key per bucket.';
+      hint.className = `text-sm mb-4 ${hasSharedCreds ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`;
+    }
+
     if (buckets.length === 0) {
       list.innerHTML = '<p class="text-center text-gray-400 py-6">No buckets found in your Cloudflare account.</p>';
       return;
@@ -154,7 +164,7 @@ async function loadCfBuckets() {
         b.alreadyAdded
           ? 'border-gray-200 dark:border-gray-700 opacity-50'
           : 'border-gray-200 dark:border-gray-700 hover:border-orange-400 cursor-pointer'
-      }" ${!b.alreadyAdded ? `onclick="selectCfBucket('${escHtml(b.name)}', '${escHtml(b.endpoint)}')"`  : ''}>
+      }" ${!b.alreadyAdded ? `onclick="selectCfBucket('${escHtml(b.name)}', '${escHtml(b.endpoint)}', ${hasSharedCreds})"` : ''}>
         <div class="flex items-center gap-3">
           <i class="fas fa-bucket text-orange-400"></i>
           <div>
@@ -164,7 +174,9 @@ async function loadCfBuckets() {
         </div>
         ${b.alreadyAdded
           ? '<span class="text-xs text-green-500 font-medium"><i class="fas fa-check mr-1"></i>Added</span>'
-          : '<i class="fas fa-chevron-right text-gray-300"></i>'
+          : hasSharedCreds
+            ? '<span class="text-xs text-orange-400"><i class="fas fa-bolt mr-1"></i>1-click</span>'
+            : '<i class="fas fa-chevron-right text-gray-300"></i>'
         }
       </div>
     `).join('');
@@ -173,7 +185,26 @@ async function loadCfBuckets() {
   }
 }
 
-function selectCfBucket(name, endpoint) {
+async function selectCfBucket(name, endpoint, hasSharedCreds) {
+  if (hasSharedCreds) {
+    // 1-click import using shared credentials from env
+    try {
+      const res = await fetch('/api/buckets/cf-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || 'Import failed');
+      showToast(`"${name}" imported successfully`, 'success');
+      closeImportModal();
+      loadBuckets();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+    return;
+  }
+  // No shared creds — go to step 2 to fill credentials manually
   document.getElementById('i-name').value = name;
   document.getElementById('i-endpoint').value = endpoint;
   document.getElementById('import-bucket-name-label').textContent = name;

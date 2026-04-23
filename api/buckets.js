@@ -70,9 +70,10 @@ module.exports = async function handler(req, res) {
         return errorResponse(res, 400, msg);
       }
 
-      // Return only name + creation date — no credentials
       const registered = await listBuckets();
       const registeredNames = new Set(registered.map(b => b.name));
+      // Flag whether shared credentials are configured
+      const hasSharedCreds = !!(process.env.R2_SHARED_ACCESS_KEY_ID && process.env.R2_SHARED_SECRET_ACCESS_KEY);
       const buckets = (data.result?.buckets || []).map(b => ({
         name: b.name,
         creationDate: b.creation_date,
@@ -80,10 +81,37 @@ module.exports = async function handler(req, res) {
         alreadyAdded: registeredNames.has(b.name),
       }));
 
-      return successResponse(res, buckets, 'Cloudflare buckets retrieved');
+      return successResponse(res, { buckets, hasSharedCreds }, 'Cloudflare buckets retrieved');
     } catch (err) {
       console.error('CF list buckets error:', err);
       return errorResponse(res, 500, 'Failed to fetch from Cloudflare');
+    }
+  }
+
+  // POST /api/buckets/cf-import — 1-click import using shared credentials from env
+  if (method === 'POST' && path === '/buckets/cf-import') {
+    try {
+      const { name, publicUrl } = req.body;
+      if (!name) return errorResponse(res, 400, 'name is required');
+
+      const accountId = process.env.CF_ACCOUNT_ID;
+      const accessKeyId = process.env.R2_SHARED_ACCESS_KEY_ID;
+      const secretAccessKey = process.env.R2_SHARED_SECRET_ACCESS_KEY;
+
+      if (!accountId || !accessKeyId || !secretAccessKey) {
+        return errorResponse(res, 400, 'CF_ACCOUNT_ID, R2_SHARED_ACCESS_KEY_ID, and R2_SHARED_SECRET_ACCESS_KEY must be set in env');
+      }
+
+      const endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
+
+      // Validate shared credentials can access this bucket
+      await validateCredentials({ name, endpoint, accessKeyId, secretAccessKey });
+
+      const bucket = await addBucket({ name, endpoint, accessKeyId, secretAccessKey, publicUrl: publicUrl || '' });
+      return successResponse(res, toPublic(bucket), 'Bucket imported successfully');
+    } catch (err) {
+      console.error('CF import error:', err);
+      return errorResponse(res, 400, err.message);
     }
   }
 
