@@ -114,6 +114,110 @@ async function deleteBucket(id, name) {
   }
 }
 
+// --- Import from Cloudflare ---
+async function openImportModal() {
+  document.getElementById('import-modal').classList.remove('hidden');
+  document.getElementById('import-modal').classList.add('flex');
+  showImportStep(1);
+  loadCfBuckets();
+}
+
+function closeImportModal() {
+  document.getElementById('import-modal').classList.add('hidden');
+  document.getElementById('import-modal').classList.remove('flex');
+  document.getElementById('import-form').reset();
+}
+
+function showImportStep(step) {
+  document.getElementById('import-step-1').classList.toggle('hidden', step !== 1);
+  document.getElementById('import-step-2').classList.toggle('hidden', step !== 2);
+}
+
+function backToStep1() {
+  showImportStep(1);
+}
+
+async function loadCfBuckets() {
+  const list = document.getElementById('cf-bucket-list');
+  list.innerHTML = '<div class="flex items-center justify-center py-8"><i class="fas fa-spinner fa-spin text-gray-400 text-2xl"></i></div>';
+  try {
+    const res = await fetch('/api/buckets/cf-list');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to fetch from Cloudflare');
+    const buckets = data.data || [];
+    if (buckets.length === 0) {
+      list.innerHTML = '<p class="text-center text-gray-400 py-6">No buckets found in your Cloudflare account.</p>';
+      return;
+    }
+    list.innerHTML = buckets.map(b => `
+      <div class="flex items-center justify-between p-3 border rounded-xl ${
+        b.alreadyAdded
+          ? 'border-gray-200 dark:border-gray-700 opacity-50'
+          : 'border-gray-200 dark:border-gray-700 hover:border-orange-400 cursor-pointer'
+      }" ${!b.alreadyAdded ? `onclick="selectCfBucket('${escHtml(b.name)}', '${escHtml(b.endpoint)}')"`  : ''}>
+        <div class="flex items-center gap-3">
+          <i class="fas fa-bucket text-orange-400"></i>
+          <div>
+            <p class="font-medium text-gray-900 dark:text-white text-sm">${escHtml(b.name)}</p>
+            <p class="text-xs text-gray-400">${b.creationDate ? new Date(b.creationDate).toLocaleDateString() : ''}</p>
+          </div>
+        </div>
+        ${b.alreadyAdded
+          ? '<span class="text-xs text-green-500 font-medium"><i class="fas fa-check mr-1"></i>Added</span>'
+          : '<i class="fas fa-chevron-right text-gray-300"></i>'
+        }
+      </div>
+    `).join('');
+  } catch (err) {
+    list.innerHTML = `<div class="text-center py-6 text-red-400"><i class="fas fa-exclamation-circle mr-2"></i>${escHtml(err.message)}</div>`;
+  }
+}
+
+function selectCfBucket(name, endpoint) {
+  document.getElementById('i-name').value = name;
+  document.getElementById('i-endpoint').value = endpoint;
+  document.getElementById('import-bucket-name-label').textContent = name;
+  document.getElementById('import-form').reset();
+  document.getElementById('i-name').value = name;
+  document.getElementById('i-endpoint').value = endpoint;
+  showImportStep(2);
+}
+
+async function submitImport(e) {
+  e.preventDefault();
+  const btn = document.getElementById('import-btn');
+  const btnText = document.getElementById('import-btn-text');
+  btn.disabled = true;
+  btnText.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Adding...';
+
+  const payload = {
+    name: document.getElementById('i-name').value,
+    endpoint: document.getElementById('i-endpoint').value,
+    accessKeyId: document.getElementById('i-access-key').value.trim(),
+    secretAccessKey: document.getElementById('i-secret-key').value.trim(),
+    publicUrl: document.getElementById('i-public-url').value.trim(),
+    createOnCloudflare: false,
+  };
+
+  try {
+    const res = await fetch('/api/buckets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || data.message || 'Failed to add bucket');
+    showToast('Bucket imported successfully', 'success');
+    closeImportModal();
+    loadBuckets();
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = 'Add Bucket';
+  }
+}
+
 async function logout() {
   await fetch('/auth/logout', { method: 'POST' });
   sessionStorage.clear();

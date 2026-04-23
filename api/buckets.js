@@ -53,6 +53,40 @@ module.exports = async function handler(req, res) {
     return errorResponse(res, 401, 'Authentication required');
   }
 
+  // GET /api/buckets/cf-list — list bucket names from Cloudflare API
+  if (method === 'GET' && path === '/buckets/cf-list') {
+    try {
+      const accountId = process.env.CF_ACCOUNT_ID;
+      const apiToken = process.env.CF_API_TOKEN;
+      if (!accountId || !apiToken) return errorResponse(res, 400, 'CF_ACCOUNT_ID and CF_API_TOKEN not configured in env');
+
+      const cfRes = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets`,
+        { headers: { 'Authorization': `Bearer ${apiToken}` } }
+      );
+      const data = await cfRes.json();
+      if (!data.success) {
+        const msg = data.errors?.[0]?.message || 'Failed to fetch buckets from Cloudflare';
+        return errorResponse(res, 400, msg);
+      }
+
+      // Return only name + creation date — no credentials
+      const registered = await listBuckets();
+      const registeredNames = new Set(registered.map(b => b.name));
+      const buckets = (data.result?.buckets || []).map(b => ({
+        name: b.name,
+        creationDate: b.creation_date,
+        endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+        alreadyAdded: registeredNames.has(b.name),
+      }));
+
+      return successResponse(res, buckets, 'Cloudflare buckets retrieved');
+    } catch (err) {
+      console.error('CF list buckets error:', err);
+      return errorResponse(res, 500, 'Failed to fetch from Cloudflare');
+    }
+  }
+
   // GET /api/buckets — list all buckets (public view, no credentials)
   if (method === 'GET' && (path === '/buckets' || path === '/buckets/')) {
     try {
