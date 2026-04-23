@@ -3,6 +3,30 @@
  * Handles file upload, display, and management functionality
  */
 
+// --- Bucket Context ---
+// Redirect to bucket selector if no active bucket
+const _activeBucketId = sessionStorage.getItem('activeBucketId');
+const _activeBucketName = sessionStorage.getItem('activeBucketName');
+if (!_activeBucketId) {
+  window.location.href = '/bucket-selector';
+}
+
+// Patch fetch to always inject X-Bucket-ID for API calls
+const _origFetch = window.fetch.bind(window);
+window.fetch = function(input, init = {}) {
+  const url = typeof input === 'string' ? input : input.url;
+  if (_activeBucketId && (url.startsWith('/r2') || url.startsWith('/api'))) {
+    init.headers = Object.assign({}, init.headers, { 'X-Bucket-ID': _activeBucketId });
+  }
+  return _origFetch(input, init);
+};
+
+// Show active bucket name in header
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('active-bucket-name');
+  if (el && _activeBucketName) el.textContent = _activeBucketName;
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     // Configuration & State
     let isLoading = false;

@@ -1,134 +1,59 @@
 const formidable = require('formidable');
-const { 
-  authenticateHybrid, 
-  handleCors, 
-  errorResponse, 
-  successResponse 
-} = require('./utils');
-const { putObject } = require('./r2-client');
+const { authenticateHybrid, handleCors, errorResponse, successResponse, setCookie } = require('./utils');
+const { resolveClientAndBucket, putObject } = require('./r2-client');
 
 module.exports = async function handler(req, res) {
   if (handleCors(req, res)) return;
-
-  if (req.method !== 'POST') {
-    return errorResponse(res, 405, 'Method not allowed');
-  }
+  if (req.method !== 'POST') return errorResponse(res, 405, 'Method not allowed');
 
   try {
-    // Authenticate using hybrid authentication (supports both API key and JWT session)
-    const { user, newAccessToken } = authenticateHybrid(req);
-    
-    // Set new access token if JWT was refreshed
-    if (newAccessToken) {
-      const { setCookie } = require('./utils');
-      const accessCookie = setCookie('accessToken', newAccessToken, { maxAge: 15 * 60 });
-      res.setHeader('Set-Cookie', accessCookie);
-    }
-    
-    // Parse form data
-    const form = new formidable.IncomingForm({
-      maxFileSize: 4 * 1024 * 1024, // 4MB for Vercel Hobby compatibility  
-      maxFiles: 10
-    });
-    
-    const [fields, files] = await form.parse(req);
-    
-    if (!files.files || files.files.length === 0) {
-      return errorResponse(res, 400, 'No files uploaded', 'Please provide files in the "files" field');
-    }
-    
+    const { newAccessToken } = authenticateHybrid(req);
+    if (newAccessToken) res.setHeader('Set-Cookie', setCookie('accessToken', newAccessToken, { maxAge: 15 * 60 }));
+
+    const { client, bucketName, publicUrl: baseUrl } = await resolveClientAndBucket(req);
+
+    const form = new formidable.IncomingForm({ maxFileSize: 4 * 1024 * 1024, maxFiles: 10 });
+    const [, files] = await form.parse(req);
+    if (!files.files?.length) return errorResponse(res, 400, 'No files uploaded');
+
     const fileArray = Array.isArray(files.files) ? files.files : [files.files];
-    const uploadResults = [];
+    const uploaded = [];
     const errors = [];
-    
+
     for (const file of fileArray) {
       try {
-        // Validate file
-        if (!file.size || file.size === 0) {
-          errors.push({ file: file.originalFilename || file.name, error: 'Empty file' });
-          continue;
-        }
-        
-        // Generate filename with timestamp and random suffix
-        const timestamp = Date.now();
-        const randomSuffix = Math.random().toString(36).substring(2, 8);
-        const originalName = file.originalFilename || file.name || 'unknown';
-        const filename = `${timestamp}-${randomSuffix}-${originalName}`;
-        
-        // Read file buffer
+        if (!file.size) { errors.push({ file: file.originalFilename, error: 'Empty file' }); continue; }
+
         const fs = require('fs');
+        const timestamp = Date.now();
+        const rand = Math.random().toString(36).substring(2, 8);
+        const originalName = file.originalFilename || 'unknown';
         let fileBuffer = fs.readFileSync(file.filepath);
-
-        // Check if file is an image and not already WebP
         let contentType = file.mimetype || 'application/octet-stream';
-        let fileKey = filename;
+        let fileKey = `${timestamp}-${rand}-${originalName}`;
 
-        if (contentType.startsWith('image/') && !contentType.includes('webp') && !contentType.includes('svg') && !contentType.includes('gif')) {
+        if (contentType.startsWith('image/') && !['webp','svg','gif'].some(t => contentType.includes(t))) {
           try {
             const sharp = require('sharp');
-            const convertedBuffer = await sharp(fileBuffer)
-              .webp({ quality: 80 })
-              .toBuffer();
-             
-            fileBuffer = convertedBuffer;
+            fileBuffer = await sharp(fileBuffer).webp({ quality: 80 }).toBuffer();
             contentType = 'image/webp';
-            
-            // Update filename extension to .webp
-            const nameParts = originalName.split('.');
-            const nameWithoutExt = nameParts.length > 1 ? nameParts.slice(0, -1).join('.') : originalName;
-            const newOriginalName = `${nameWithoutExt}.webp`;
-            fileKey = `${timestamp}-${randomSuffix}-${newOriginalName}`;
-          } catch (conversionError) {
-             console.error('Image conversion failed, uploading original:', conversionError);
-          }
+            const base = originalName.split('.').slice(0, -1).join('.') || originalName;
+            fileKey = `${timestamp}-${rand}-${base}.webp`;
+          } catch (e) { console.error('Conversion failed:', e); }
         }
-        
-        // Upload to R2
-        await putObject({
-          Bucket: process.env.R2_BUCKET_NAME,
-          Key: fileKey,
-          Body: fileBuffer,
-          ContentType: contentType,
-        });
-        
-        // Build file URLs
-        const baseUrl = process.env.R2_PUBLIC_URL || '';
+
+        await putObject(client, { Bucket: bucketName, Key: fileKey, Body: fileBuffer, ContentType: contentType });
         const publicUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${fileKey}` : null;
-        const downloadUrl = `/r2/download/${fileKey}`;
-        
-        uploadResults.push({
-          filename: fileKey,
-          originalName: originalName,
-          key: fileKey,
-          size: fileBuffer.length,
-          contentType: contentType,
-          publicUrl: publicUrl,
-          downloadUrl: downloadUrl,
-          uploadedAt: new Date().toISOString()
-        });
-      } catch (uploadError) {
-        errors.push({ 
-          file: file.originalFilename || file.name, 
-          error: uploadError.message 
-        });
+        uploaded.push({ filename: fileKey, originalName, key: fileKey, size: fileBuffer.length, contentType, publicUrl, downloadUrl: `/r2/download/${fileKey}`, uploadedAt: new Date().toISOString() });
+      } catch (e) {
+        errors.push({ file: file.originalFilename, error: e.message });
       }
     }
-    
-    return successResponse(res, {
-      uploaded: uploadResults,
-      errors: errors,
-      summary: {
-        total: fileArray.length,
-        successful: uploadResults.length,
-        failed: errors.length
-      }
-    }, `${uploadResults.length} files uploaded successfully${errors.length > 0 ? `, ${errors.length} failed` : ''}`);
-    
+
+    return successResponse(res, { uploaded, errors, summary: { total: fileArray.length, successful: uploaded.length, failed: errors.length } }, `${uploaded.length} files uploaded successfully${errors.length ? `, ${errors.length} failed` : ''}`);
   } catch (error) {
     console.error('API Multiple upload error:', error);
-    if (error.message.includes('API key') || error.message.includes('token') || error.message.includes('authenticate')) {
-      return errorResponse(res, 401, error.message);
-    }
+    if (error.message.includes('API key') || error.message.includes('token') || error.message.includes('authenticate')) return errorResponse(res, 401, error.message);
     return errorResponse(res, 500, 'Upload failed', error.message);
   }
-}
+};
