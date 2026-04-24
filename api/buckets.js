@@ -61,24 +61,6 @@ module.exports = async function handler(req, res) {
     }, 'Config retrieved');
   }
 
-  // GET /api/buckets/debug-cf/:name — raw CF API response for debugging domain detection
-  if (method === 'GET' && path.startsWith('/buckets/debug-cf/')) {
-    try {
-      const bucketName = decodeURIComponent(path.replace('/buckets/debug-cf/', ''));
-      const accountId = process.env.CF_ACCOUNT_ID;
-      const apiToken = process.env.CF_API_TOKEN;
-      if (!accountId || !apiToken) return errorResponse(res, 400, 'CF_ACCOUNT_ID and CF_API_TOKEN required');
-      const cfRes = await fetch(
-        `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets/${encodeURIComponent(bucketName)}`,
-        { headers: { 'Authorization': `Bearer ${apiToken}` } }
-      );
-      const cfData = await cfRes.json();
-      return successResponse(res, cfData, 'Raw CF response');
-    } catch (err) {
-      return errorResponse(res, 500, err.message);
-    }
-  }
-
   // GET /api/buckets/cf-list — list bucket names from Cloudflare API
   if (method === 'GET' && path === '/buckets/cf-list') {
     try {
@@ -137,27 +119,10 @@ module.exports = async function handler(req, res) {
 
       const endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
 
-      // Auto-detect public URL from CF API if token available
-      let autoPublicUrl = manualPublicUrl || '';
-      if (apiToken && !autoPublicUrl) {
-        try {
-          const cfRes = await fetch(
-            `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets/${encodeURIComponent(name)}`,
-            { headers: { 'Authorization': `Bearer ${apiToken}` } }
-          );
-          const cfData = await cfRes.json();
-          if (cfData.success && cfData.result) {
-            const b = cfData.result;
-            const publicDomain = (b.domains || b.custom_domains || []).find(d => d.enabled || d.status === 'active' || d.status === 'Active')?.domain || b.public_domain || null;
-            if (publicDomain) autoPublicUrl = `https://${publicDomain}`;
-          }
-        } catch (e) { /* non-fatal */ }
-      }
-
       // Validate shared credentials can access this bucket
       await validateCredentials({ name, endpoint, accessKeyId, secretAccessKey });
 
-      const bucket = await addBucket({ name, endpoint, accessKeyId, secretAccessKey, publicUrl: autoPublicUrl });
+      const bucket = await addBucket({ name, endpoint, accessKeyId, secretAccessKey, publicUrl: manualPublicUrl || '' });
       return successResponse(res, toPublic(bucket), 'Bucket imported successfully');
     } catch (err) {
       console.error('CF import error:', err);
@@ -211,25 +176,7 @@ module.exports = async function handler(req, res) {
       // Validate credentials can actually access the bucket
       await validateCredentials({ name, endpoint, accessKeyId, secretAccessKey });
 
-      // Auto-detect public URL from CF API if not manually provided
-      let resolvedPublicUrl = publicUrl || '';
-      const apiToken = process.env.CF_API_TOKEN;
-      if (apiToken && accountId && !resolvedPublicUrl) {
-        try {
-          const cfRes = await fetch(
-            `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets/${encodeURIComponent(name)}`,
-            { headers: { 'Authorization': `Bearer ${apiToken}` } }
-          );
-          const cfData = await cfRes.json();
-          if (cfData.success && cfData.result) {
-            const b = cfData.result;
-            const publicDomain = (b.domains || b.custom_domains || []).find(d => d.enabled || d.status === 'active' || d.status === 'Active')?.domain || b.public_domain || null;
-            if (publicDomain) resolvedPublicUrl = `https://${publicDomain}`;
-          }
-        } catch (e) { /* non-fatal */ }
-      }
-
-      const bucket = await addBucket({ name, endpoint, accessKeyId, secretAccessKey, publicUrl: resolvedPublicUrl });
+      const bucket = await addBucket({ name, endpoint, accessKeyId, secretAccessKey, publicUrl: publicUrl || '' });
       return successResponse(res, toPublic(bucket), 'Bucket created successfully');
     } catch (err) {
       console.error('Create bucket error:', err);
@@ -237,34 +184,18 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // POST /api/buckets/:id/sync — refresh public URL from Cloudflare API
+  // POST /api/buckets/:id/sync — update publicUrl manually
   const syncMatch = path.match(/^\/buckets\/([^/]+)\/sync$/);
   if (method === 'POST' && syncMatch) {
     try {
       const id = syncMatch[1];
-      const bucket = await getBucketById(id);
-      if (!bucket) return errorResponse(res, 404, 'Bucket not found');
-
-      const accountId = process.env.CF_ACCOUNT_ID;
-      const apiToken = process.env.CF_API_TOKEN;
-      if (!accountId || !apiToken) return errorResponse(res, 400, 'CF_ACCOUNT_ID and CF_API_TOKEN required for sync');
-
-      const cfRes = await fetch(
-        `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets/${encodeURIComponent(bucket.name)}`,
-        { headers: { 'Authorization': `Bearer ${apiToken}` } }
-      );
-      const cfData = await cfRes.json();
-      if (!cfData.success) return errorResponse(res, 400, cfData.errors?.[0]?.message || 'CF API error');
-
-      const b = cfData.result;
-      const publicDomain = (b.domains || b.custom_domains || []).find(d => d.enabled || d.status === 'active' || d.status === 'Active')?.domain || b.public_domain || null;
-      const publicUrl = publicDomain ? `https://${publicDomain}` : '';
-
-      const updated = await updateBucket(id, { publicUrl });
-      return successResponse(res, toPublic(updated), publicUrl ? `Public URL synced: ${publicUrl}` : 'No public domain found on this bucket');
+      const { publicUrl } = req.body;
+      if (publicUrl === undefined) return errorResponse(res, 400, 'publicUrl is required');
+      const updated = await updateBucket(id, { publicUrl: publicUrl || '' });
+      if (!updated) return errorResponse(res, 404, 'Bucket not found');
+      return successResponse(res, toPublic(updated), 'Public URL updated');
     } catch (err) {
-      console.error('Sync bucket error:', err);
-      return errorResponse(res, 500, 'Failed to sync bucket');
+      return errorResponse(res, 500, 'Failed to update bucket');
     }
   }
 

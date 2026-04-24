@@ -58,8 +58,8 @@ async function loadBuckets() {
           <button onclick="event.stopPropagation(); copyBucketId('${b.id}', '${escHtml(b.name)}')" class="p-1.5 hover:text-indigo-500 transition-colors" style="color: var(--text-tertiary);" title="Copy Bucket ID">
             <i class="fas fa-fingerprint text-sm"></i>
           </button>
-          <button onclick="event.stopPropagation(); syncBucket('${b.id}', '${escHtml(b.name)}')" class="p-1.5 hover:text-blue-500 transition-colors" style="color: var(--text-tertiary);" title="Sync public URL from Cloudflare">
-            <i class="fas fa-sync-alt text-sm"></i>
+          <button onclick="event.stopPropagation(); editPublicUrl('${b.id}', '${escHtml(b.name)}', '${escHtml(b.publicUrl || '')}')" class="p-1.5 hover:text-blue-500 transition-colors" style="color: var(--text-tertiary);" title="Set Public URL">
+            <i class="fas fa-link text-sm"></i>
           </button>
           <button onclick="event.stopPropagation(); deleteBucket('${b.id}', '${escHtml(b.name)}')" class="p-1.5 hover:text-red-500 transition-colors" style="color: var(--text-tertiary);" title="Remove from panel">
             <i class="fas fa-trash text-sm"></i>
@@ -133,7 +133,6 @@ function copyBucketId(id, name) {
   navigator.clipboard.writeText(id).then(() => {
     showToast(`Bucket ID copied: ${name}`, 'success');
   }).catch(() => {
-    // fallback for older browsers
     const el = document.createElement('textarea');
     el.value = id;
     document.body.appendChild(el);
@@ -144,17 +143,18 @@ function copyBucketId(id, name) {
   });
 }
 
-async function syncBucket(id, name) {
-  try {
-    const res = await fetch(`/api/buckets/${id}/sync`, { method: 'POST' });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.meta?.message || data.error || 'Sync failed');
-    const msg = data.data?.publicUrl ? `Public URL synced: ${data.data.publicUrl}` : 'No public domain found on Cloudflare';
-    showToast(msg, data.data?.publicUrl ? 'success' : 'info');
+function editPublicUrl(id, name, currentUrl) {
+  const url = prompt(`Public URL for "${name}":\n(e.g. https://cdn.example.com — leave empty to clear)`, currentUrl || '');
+  if (url === null) return; // cancelled
+  fetch(`/api/buckets/${id}/sync`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ publicUrl: url.trim() }),
+  }).then(r => r.json()).then(data => {
+    if (data.meta?.code !== 200) throw new Error(data.meta?.message || 'Failed');
+    showToast(url.trim() ? `Public URL set: ${url.trim()}` : 'Public URL cleared', 'success');
     loadBuckets();
-  } catch (err) {
-    showToast(err.message, 'error');
-  }
+  }).catch(err => showToast(err.message, 'error'));
 }
 
 async function deleteBucket(id, name) {
