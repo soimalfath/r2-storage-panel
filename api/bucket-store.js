@@ -78,4 +78,13 @@ function toPublic(bucket) {
   };
 }
 
-module.exports = { listBuckets, getBucketById, addBucket, deleteBucket, toPublic };
+async function updateBucket(id, fields) {
+  const buckets = await readStore();
+  const idx = buckets.findIndex(b => b.id === id);
+  if (idx === -1) return null;
+  buckets[idx] = { ...buckets[idx], ...fields };
+  await writeStore(buckets);
+  return buckets[idx];
+}
+
+module.exports = { listBuckets, getBucketById, addBucket, updateBucket, deleteBucket, toPublic };

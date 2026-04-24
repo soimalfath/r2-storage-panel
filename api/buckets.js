@@ -1,5 +1,5 @@
 const { authenticateToken, handleCors, errorResponse, successResponse } = require('./utils');
-const { listBuckets, getBucketById, addBucket, deleteBucket, toPublic } = require('./bucket-store');
+const { listBuckets, getBucketById, addBucket, updateBucket, deleteBucket, toPublic } = require('./bucket-store');
 const { createR2Client } = require('./r2-client');
 const { ListObjectsV2Command } = require('@aws-sdk/client-s3');
 
@@ -84,7 +84,7 @@ module.exports = async function handler(req, res) {
       const hasSharedCreds = !!(process.env.R2_SHARED_ACCESS_KEY_ID && process.env.R2_SHARED_SECRET_ACCESS_KEY);
       const buckets = (data.result?.buckets || []).map(b => {
         // Auto-detect public URL from CF domains if bucket has public access enabled
-        const publicDomain = b.domains?.find(d => d.enabled)?.domain || b.public_domain || null;
+        const publicDomain = b.domains?.find(d => d.enabled || d.status === 'active')?.domain || b.public_domain || null;
         const publicUrl = publicDomain ? `https://${publicDomain}` : null;
         return {
           name: b.name,
@@ -130,7 +130,7 @@ module.exports = async function handler(req, res) {
           const cfData = await cfRes.json();
           if (cfData.success && cfData.result) {
             const b = cfData.result;
-            const publicDomain = b.domains?.find(d => d.enabled)?.domain || b.public_domain || null;
+            const publicDomain = b.domains?.find(d => d.enabled || d.status === 'active')?.domain || b.public_domain || null;
             if (publicDomain) autoPublicUrl = `https://${publicDomain}`;
           }
         } catch (e) { /* non-fatal */ }
@@ -205,7 +205,7 @@ module.exports = async function handler(req, res) {
           const cfData = await cfRes.json();
           if (cfData.success && cfData.result) {
             const b = cfData.result;
-            const publicDomain = b.domains?.find(d => d.enabled)?.domain || b.public_domain || null;
+            const publicDomain = b.domains?.find(d => d.enabled || d.status === 'active')?.domain || b.public_domain || null;
             if (publicDomain) resolvedPublicUrl = `https://${publicDomain}`;
           }
         } catch (e) { /* non-fatal */ }
@@ -216,6 +216,37 @@ module.exports = async function handler(req, res) {
     } catch (err) {
       console.error('Create bucket error:', err);
       return errorResponse(res, 400, err.message);
+    }
+  }
+
+  // POST /api/buckets/:id/sync — refresh public URL from Cloudflare API
+  const syncMatch = path.match(/^\/buckets\/([^/]+)\/sync$/);
+  if (method === 'POST' && syncMatch) {
+    try {
+      const id = syncMatch[1];
+      const bucket = await getBucketById(id);
+      if (!bucket) return errorResponse(res, 404, 'Bucket not found');
+
+      const accountId = process.env.CF_ACCOUNT_ID;
+      const apiToken = process.env.CF_API_TOKEN;
+      if (!accountId || !apiToken) return errorResponse(res, 400, 'CF_ACCOUNT_ID and CF_API_TOKEN required for sync');
+
+      const cfRes = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets/${encodeURIComponent(bucket.name)}`,
+        { headers: { 'Authorization': `Bearer ${apiToken}` } }
+      );
+      const cfData = await cfRes.json();
+      if (!cfData.success) return errorResponse(res, 400, cfData.errors?.[0]?.message || 'CF API error');
+
+      const b = cfData.result;
+      const publicDomain = b.domains?.find(d => d.enabled || d.status === 'active')?.domain || b.public_domain || null;
+      const publicUrl = publicDomain ? `https://${publicDomain}` : '';
+
+      const updated = await updateBucket(id, { publicUrl });
+      return successResponse(res, toPublic(updated), publicUrl ? `Public URL synced: ${publicUrl}` : 'No public domain found on this bucket');
+    } catch (err) {
+      console.error('Sync bucket error:', err);
+      return errorResponse(res, 500, 'Failed to sync bucket');
     }
   }
 
