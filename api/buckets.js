@@ -82,12 +82,18 @@ module.exports = async function handler(req, res) {
       const registeredNames = new Set(registered.map(b => b.name));
       // Flag whether shared credentials are configured
       const hasSharedCreds = !!(process.env.R2_SHARED_ACCESS_KEY_ID && process.env.R2_SHARED_SECRET_ACCESS_KEY);
-      const buckets = (data.result?.buckets || []).map(b => ({
-        name: b.name,
-        creationDate: b.creation_date,
-        endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-        alreadyAdded: registeredNames.has(b.name),
-      }));
+      const buckets = (data.result?.buckets || []).map(b => {
+        // Auto-detect public URL from CF domains if bucket has public access enabled
+        const publicDomain = b.domains?.find(d => d.enabled)?.domain || b.public_domain || null;
+        const publicUrl = publicDomain ? `https://${publicDomain}` : null;
+        return {
+          name: b.name,
+          creationDate: b.creation_date,
+          endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+          publicUrl,
+          alreadyAdded: registeredNames.has(b.name),
+        };
+      });
 
       return successResponse(res, { buckets, hasSharedCreds }, 'Cloudflare buckets retrieved');
     } catch (err) {
@@ -99,10 +105,11 @@ module.exports = async function handler(req, res) {
   // POST /api/buckets/cf-import — 1-click import using shared credentials from env
   if (method === 'POST' && path === '/buckets/cf-import') {
     try {
-      const { name, publicUrl } = req.body;
+      const { name, publicUrl: manualPublicUrl } = req.body;
       if (!name) return errorResponse(res, 400, 'name is required');
 
       const accountId = process.env.CF_ACCOUNT_ID;
+      const apiToken = process.env.CF_API_TOKEN;
       const accessKeyId = process.env.R2_SHARED_ACCESS_KEY_ID;
       const secretAccessKey = process.env.R2_SHARED_SECRET_ACCESS_KEY;
 
@@ -112,10 +119,27 @@ module.exports = async function handler(req, res) {
 
       const endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
 
+      // Auto-detect public URL from CF API if token available
+      let autoPublicUrl = manualPublicUrl || '';
+      if (apiToken && !autoPublicUrl) {
+        try {
+          const cfRes = await fetch(
+            `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets/${encodeURIComponent(name)}`,
+            { headers: { 'Authorization': `Bearer ${apiToken}` } }
+          );
+          const cfData = await cfRes.json();
+          if (cfData.success && cfData.result) {
+            const b = cfData.result;
+            const publicDomain = b.domains?.find(d => d.enabled)?.domain || b.public_domain || null;
+            if (publicDomain) autoPublicUrl = `https://${publicDomain}`;
+          }
+        } catch (e) { /* non-fatal */ }
+      }
+
       // Validate shared credentials can access this bucket
       await validateCredentials({ name, endpoint, accessKeyId, secretAccessKey });
 
-      const bucket = await addBucket({ name, endpoint, accessKeyId, secretAccessKey, publicUrl: publicUrl || '' });
+      const bucket = await addBucket({ name, endpoint, accessKeyId, secretAccessKey, publicUrl: autoPublicUrl });
       return successResponse(res, toPublic(bucket), 'Bucket imported successfully');
     } catch (err) {
       console.error('CF import error:', err);
@@ -169,7 +193,25 @@ module.exports = async function handler(req, res) {
       // Validate credentials can actually access the bucket
       await validateCredentials({ name, endpoint, accessKeyId, secretAccessKey });
 
-      const bucket = await addBucket({ name, endpoint, accessKeyId, secretAccessKey, publicUrl: publicUrl || '' });
+      // Auto-detect public URL from CF API if not manually provided
+      let resolvedPublicUrl = publicUrl || '';
+      const apiToken = process.env.CF_API_TOKEN;
+      if (apiToken && accountId && !resolvedPublicUrl) {
+        try {
+          const cfRes = await fetch(
+            `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets/${encodeURIComponent(name)}`,
+            { headers: { 'Authorization': `Bearer ${apiToken}` } }
+          );
+          const cfData = await cfRes.json();
+          if (cfData.success && cfData.result) {
+            const b = cfData.result;
+            const publicDomain = b.domains?.find(d => d.enabled)?.domain || b.public_domain || null;
+            if (publicDomain) resolvedPublicUrl = `https://${publicDomain}`;
+          }
+        } catch (e) { /* non-fatal */ }
+      }
+
+      const bucket = await addBucket({ name, endpoint, accessKeyId, secretAccessKey, publicUrl: resolvedPublicUrl });
       return successResponse(res, toPublic(bucket), 'Bucket created successfully');
     } catch (err) {
       console.error('Create bucket error:', err);
