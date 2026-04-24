@@ -1,14 +1,14 @@
 // Universal Theme Management
 class ThemeManager {
     constructor() {
-        this.init();
+        // Apply theme immediately (before DOM ready) to avoid flash
+        this.currentTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', this.currentTheme);
     }
 
     init() {
-        // Get saved theme or default to light
-        this.currentTheme = localStorage.getItem('theme') || 'light';
-        this.applyTheme(this.currentTheme);
         this.createToggleButton();
+        this.updateToggleIcon();
         this.bindEvents();
     }
 
@@ -40,21 +40,28 @@ class ThemeManager {
 
     insertToggleButton(toggleBtn) {
         // Try different locations based on page structure
-        const headerActions = document.querySelector('.flex.items-center.justify-end.gap-2');
-        const headerGap = document.querySelector('.flex.items-center.gap-2');
+        const headerActions = document.querySelector('header .flex.items-center.justify-end.gap-2');
+        const headerGap = document.querySelector('header .flex.items-center.gap-2');
         const header = document.querySelector('header');
         
         if (headerActions) {
-            // Insert before the last button (usually logout)
-            const lastButton = headerActions.lastElementChild;
-            headerActions.insertBefore(toggleBtn, lastButton);
+            // Insert before the last button in header actions
+            headerActions.insertBefore(toggleBtn, headerActions.lastElementChild);
         } else if (headerGap) {
+            // Append to header gap container
             headerGap.appendChild(toggleBtn);
         } else if (header) {
-            header.appendChild(toggleBtn);
+            // Create a container for the toggle if header exists but no suitable container
+            const container = document.createElement('div');
+            container.className = 'absolute top-4 right-4';
+            container.appendChild(toggleBtn);
+            header.appendChild(container);
         } else {
-            // Fallback: create floating toggle
-            toggleBtn.className += ' fixed top-4 right-4 z-50 bg-white border border-gray-300 shadow-lg';
+            // Fallback: floating toggle — safe, never inside page content
+            toggleBtn.className += ' fixed top-4 right-4 z-50 shadow-lg';
+            toggleBtn.style.backgroundColor = 'var(--bg-primary)';
+            toggleBtn.style.borderColor = 'var(--border-color)';
+            toggleBtn.style.color = 'var(--text-primary)';
             document.body.appendChild(toggleBtn);
         }
     }
@@ -111,6 +118,9 @@ class ThemeManager {
 // Initialize theme manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.themeManager = new ThemeManager();
+    window.themeManager.init();
+    // Expose global shortcut for inline onclick handlers
+    window.toggleTheme = () => window.themeManager.toggleTheme();
 });
 
 // Export for use in other scripts

@@ -3,57 +3,69 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Qiblat File Manager</title>
+  <title>Login — R2 Panel</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <link rel="stylesheet" href="/css/main.css">
   <script src="/js/theme.js"></script>
+  <style>
+    .theme-toggle-login {
+      position: fixed; top: 1rem; right: 1rem;
+      background-color: var(--bg-primary); border: 1px solid var(--border-color);
+      color: var(--text-secondary); border-radius: 0.5rem;
+      padding: 0.5rem 0.75rem; cursor: pointer; transition: all 0.2s; z-index: 50;
+    }
+    .theme-toggle-login:hover { background-color: var(--bg-tertiary); }
+  </style>
 </head>
-<body class="bg-gradient-to-br from-indigo-100 via-white to-cyan-100 min-h-screen flex items-center justify-center font-sans">
+<body class="min-h-screen flex items-center justify-center font-sans" style="background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 50%, var(--bg-tertiary) 100%);">
   
   <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3"></div>
 
-  <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
+  <div class="p-8 rounded-2xl shadow-xl w-full max-w-md" style="background-color: var(--bg-primary);">
     <div class="text-center mb-8">
-      <div class="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
-        <i class="fas fa-cloud-upload-alt text-2xl text-indigo-600"></i>
+      <div class="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4" style="background-color: var(--bg-tertiary);">
+        <i class="fas fa-cloud-upload-alt text-2xl" style="color: var(--primary-color);"></i>
       </div>
-      <h1 class="text-2xl font-bold text-gray-800 mb-2">Qiblat File Manager</h1>
-      <p class="text-gray-600">Sign in to access your files</p>
+      <h1 class="text-2xl font-bold mb-2" style="color: var(--text-primary);">R2 Storage Panel</h1>
+      <p style="color: var(--text-secondary);">Sign in to access your files</p>
     </div>
 
     <form id="loginForm" class="space-y-6">
       <div>
-        <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+        <label for="username" class="block text-sm font-medium mb-2" style="color: var(--text-secondary);">Username</label>
         <div class="relative">
           <input 
             type="text" 
             id="username" 
             name="username" 
             required
-            class="w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+            class="w-full px-4 py-3 pl-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+            style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);"
             placeholder="Enter your username"
           >
-          <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          <i class="fas fa-user absolute left-3 top-1/2 -translate-y-1/2" style="color: var(--text-tertiary);"></i>
         </div>
       </div>
 
       <div>
-        <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+        <label for="password" class="block text-sm font-medium mb-2" style="color: var(--text-secondary);">Password</label>
         <div class="relative">
           <input 
             type="password" 
             id="password" 
             name="password" 
             required
-            class="w-full px-4 py-3 pl-10 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+            class="w-full px-4 py-3 pl-10 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+            style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);"
             placeholder="Enter your password"
           >
-          <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          <i class="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2" style="color: var(--text-tertiary);"></i>
           <button 
             type="button" 
             id="togglePassword" 
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+            class="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
+            style="color: var(--text-tertiary);"
           >
             <i class="fas fa-eye"></i>
           </button>

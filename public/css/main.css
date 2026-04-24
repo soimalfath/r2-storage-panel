@@ -79,43 +79,45 @@ body {
     background-color: var(--bg-tertiary);
 }
 
-/* Dark mode overrides for common elements */
-.bg-white {
+/* Dark mode overrides for common elements — only apply in dark mode */
+[data-theme="dark"] .bg-white {
     background-color: var(--bg-primary) !important;
 }
 
-.bg-gray-50 {
+[data-theme="dark"] .bg-gray-50 {
     background-color: var(--bg-secondary) !important;
 }
 
-.bg-gray-100 {
+[data-theme="dark"] .bg-gray-100 {
     background-color: var(--bg-tertiary) !important;
 }
 
-.text-gray-800 {
+[data-theme="dark"] .text-gray-800 {
     color: var(--text-primary) !important;
 }
 
-.text-gray-600 {
+[data-theme="dark"] .text-gray-600 {
     color: var(--text-secondary) !important;
 }
 
-.text-gray-500 {
+[data-theme="dark"] .text-gray-500 {
     color: var(--text-tertiary) !important;
 }
 
-.border-gray-300 {
+[data-theme="dark"] .border-gray-300 {
     border-color: var(--border-color) !important;
 }
 
-.border-gray-200 {
+[data-theme="dark"] .border-gray-200 {
     border-color: var(--border-color) !important;
 }
 
-/* Toast Notifications */
 .toast {
     animation: slide-in 0.3s ease-out, fade-out 0.5s ease-in forwards;
     animation-delay: 0s, 3.5s;
+}
+
+[data-theme="dark"] .toast {
     background-color: var(--bg-primary);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
@@ -186,7 +188,7 @@ body {
     transition: opacity 0.3s ease;
 }
 
-#confirm-modal .bg-white {
+[data-theme="dark"] #confirm-modal .bg-white {
     background-color: var(--bg-primary) !important;
 }
 
@@ -281,14 +283,34 @@ body {
     background-color: var(--bg-tertiary);
 }
 
-/* Input and Form Elements */
-input, textarea, select {
+/* Input and Form Elements — dark mode only */
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select {
     background-color: var(--bg-primary);
     border-color: var(--border-color);
     color: var(--text-primary);
 }
 
-input:focus, textarea:focus, select:focus {
+[data-theme="dark"] input:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] select:focus {
+    border-color: var(--primary-color);
+    background-color: var(--bg-primary);
+}
+
+/* Light mode input fixes */
+input,
+textarea,
+select {
+    background-color: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
     border-color: var(--primary-color);
     background-color: var(--bg-primary);
 }

@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="/css/main.css">
     <script src="/js/theme.js"></script>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="min-h-screen" style="background-color: var(--bg-secondary);">
 
     <div id="toast-container" class="fixed bottom-5 right-5 z-[100] flex flex-col gap-3"></div>
 
@@ -109,32 +109,32 @@
 
     <!-- Convert Options Modal -->
     <div id="convertModal" class="fixed inset-0 z-[95] flex items-center justify-center p-4 hidden opacity-0">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h3 class="text-lg font-bold text-gray-800 mb-4">Convert to WebP</h3>
-            <p class="text-gray-600 mb-4">Convert <span id="convertCount" class="font-bold text-indigo-600">0</span> selected image(s) to WebP format.</p>
+        <div class="rounded-lg shadow-xl p-6 w-full max-w-md" style="background-color: var(--bg-primary);">
+            <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">Convert to WebP</h3>
+            <p class="mb-4" style="color: var(--text-secondary);">Convert <span id="convertCount" class="font-bold" style="color: var(--primary-color);">0</span> selected image(s) to WebP format.</p>
             
             <div class="space-y-4 mb-6">
                 <div>
-                    <label for="convertQuality" class="block text-sm font-medium text-gray-700 mb-2">
-                        Quality: <span id="convertQualityValue" class="font-bold text-indigo-600">80</span>%
+                    <label for="convertQuality" class="block text-sm font-medium mb-2" style="color: var(--text-secondary);">
+                        Quality: <span id="convertQualityValue" class="font-bold" style="color: var(--primary-color);">80</span>%
                     </label>
                     <input type="range" id="convertQuality" class="w-full" min="10" max="100" value="80">
-                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <div class="flex justify-between text-xs mt-1" style="color: var(--text-tertiary);">
                         <span>Smaller (10%)</span>
                         <span>Best (100%)</span>
                     </div>
                 </div>
                 
-                <div class="flex items-center p-3 bg-yellow-50 rounded-lg border border-yellow-100">
+                <div class="flex items-center p-3 rounded-lg border" style="background-color: var(--warning-bg); border-color: var(--warning-border);">
                     <input type="checkbox" id="deleteOriginalCheckbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded mr-3">
-                    <label for="deleteOriginalCheckbox" class="text-sm text-gray-700">
+                    <label for="deleteOriginalCheckbox" class="text-sm" style="color: var(--warning-text);">
                         Delete original files after conversion
                     </label>
                 </div>
             </div>
             
             <div class="flex justify-end gap-3">
-                <button id="convertCancelBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Cancel</button>
+                <button id="convertCancelBtn" class="px-4 py-2 rounded-lg transition-colors" style="background-color: var(--bg-secondary); color: var(--text-secondary);">Cancel</button>
                 <button id="convertConfirmBtn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
                     <i class="fas fa-magic mr-2"></i>Convert
                 </button>
@@ -143,32 +143,35 @@
     </div>
 
     <div id="confirm-modal" class="fixed inset-0 z-[95] flex items-center justify-center p-4 hidden opacity-0">
-        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
-            <h3 id="confirm-title" class="text-lg font-bold text-gray-800">Anda Yakin?</h3>
-            <p id="confirm-message" class="text-gray-600 mt-2">Aksi ini tidak dapat dibatalkan.</p>
+        <div class="rounded-lg shadow-xl p-6 w-full max-w-sm" style="background-color: var(--bg-primary);">
+            <h3 id="confirm-title" class="text-lg font-bold" style="color: var(--text-primary);">Anda Yakin?</h3>
+            <p id="confirm-message" class="mt-2" style="color: var(--text-secondary);">Aksi ini tidak dapat dibatalkan.</p>
             <div class="mt-6 flex justify-end gap-3">
-                <button id="confirm-cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Batal</button>
+                <button id="confirm-cancel-btn" class="px-4 py-2 rounded-lg transition-colors" style="background-color: var(--bg-secondary); color: var(--text-secondary);">Batal</button>
                 <button id="confirm-ok-btn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Hapus</button>
             </div>
         </div>
     </div>
 
     <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl">
-        <header class="bg-white shadow-md rounded-xl p-4 sm:p-6 mb-8">
+        <header class="shadow-md rounded-xl p-4 sm:p-6 mb-8" style="background-color: var(--bg-primary);">
             <div class="flex flex-wrap justify-between items-center gap-y-4">
                 <div class="flex items-center">
                     <span class="text-white bg-indigo-600 rounded-lg p-2 mr-3">
                         <i class="fas fa-cloud"></i>
                     </span>
                     <div>
-                        <h1 class="text-xl sm:text-2xl font-bold text-gray-800">
+                        <h1 class="text-xl sm:text-2xl font-bold" style="color: var(--text-primary);">
                             R2 Cloudflare File Manager
                         </h1>
-                        <p class="text-gray-500 text-sm hidden sm:block">Seret dan lepas untuk mengelola file Anda.</p>
+                        <p class="text-sm hidden sm:block" style="color: var(--text-secondary);">
+                          Bucket: <span id="active-bucket-name" class="font-semibold" style="color: var(--primary-color);">—</span>
+                          <a href="/bucket-selector" class="ml-2 text-xs hover:text-indigo-500" style="color: var(--text-tertiary);"><i class="fas fa-exchange-alt"></i> switch</a>
+                        </p>
                     </div>
                 </div>
                 
-                <div id="dropArea" class="w-full sm:w-auto flex items-center justify-end gap-2 border-2 border-dashed border-gray-300 rounded-lg p-2 transition-all hover:border-indigo-500 hover:bg-indigo-50">
+                <div id="dropArea" class="w-full sm:w-auto flex items-center justify-end gap-2 border-2 border-dashed rounded-lg p-2 transition-all" style="border-color: var(--border-color);" onmouseover="this.style.borderColor='var(--primary-color)'; this.style.backgroundColor='var(--bg-tertiary)'" onmouseout="this.style.borderColor='var(--border-color)'; this.style.backgroundColor='transparent'">
                     <input type="file" id="fileInput" class="hidden" multiple>
                     <button id="browseButton" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm font-semibold flex-grow sm:flex-grow-0 flex items-center justify-center gap-2">
                         <i class="fas fa-upload"></i>
@@ -177,7 +180,7 @@
                     </button>
                     
                     <!-- Bulk Actions - Auto show when files selected -->
-                    <div id="bulkActions" class="hidden flex items-center gap-2 border-l-2 border-gray-300 pl-2">
+                    <div id="bulkActions" class="hidden flex items-center gap-2 pl-2" style="border-left: 2px solid var(--border-color);">
                         <button id="selectAllToggleBtn" class="bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm font-semibold flex items-center gap-2" title="Select All">
                             <i class="fas fa-check-double"></i>
                             <span class="hidden md:inline">All</span>
@@ -195,68 +198,73 @@
                         </button>
                     </div>
                     
-                    <a href="/api-docs" class="bg-gray-200 text-gray-700 p-2.5 rounded-lg hover:bg-gray-300 transition-colors" title="Dokumentasi API">
+                    <a href="/api-docs" class="p-2.5 rounded-lg transition-colors theme-toggle" style="background-color: var(--bg-tertiary); color: var(--text-secondary);" title="Dokumentasi API">
                         <i class="fas fa-code"></i>
                     </a>
-                    <a href="/webp-converter" class="bg-green-200 text-green-700 p-2.5 rounded-lg hover:bg-green-300 transition-colors" title="WebP Converter">
+                    <a href="/webp-converter" class="p-2.5 rounded-lg transition-colors theme-toggle" style="background-color: var(--bg-tertiary); color: var(--text-secondary);" title="WebP Converter">
                         <i class="fas fa-image"></i>
                     </a>
-                    <a href="/stats" class="bg-blue-200 text-blue-700 p-2.5 rounded-lg hover:bg-blue-300 transition-colors" title="Storage Statistics">
+                    <a href="/stats" class="p-2.5 rounded-lg transition-colors theme-toggle" style="background-color: var(--bg-tertiary); color: var(--text-secondary);" title="Storage Statistics">
                         <i class="fas fa-chart-bar"></i>
                     </a>
-                    <button id="logoutBtn" class="bg-gray-200 text-gray-700 p-2.5 rounded-lg hover:bg-red-200 hover:text-red-700 transition-colors" title="Keluar">
+                    <button id="logoutBtn" class="p-2.5 rounded-lg hover:bg-red-100 hover:text-red-700 transition-colors theme-toggle" style="background-color: var(--bg-tertiary); color: var(--text-secondary);" title="Keluar">
                         <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                    <button id="theme-toggle" class="p-2.5 rounded-lg transition-colors theme-toggle" style="background-color: var(--bg-tertiary); color: var(--text-secondary);" title="Toggle theme">
+                        <i class="fas fa-moon"></i>
                     </button>
                 </div>
             </div>
         </header>
 
-        <div class="bg-white rounded-xl shadow-md p-4 mb-6 sticky top-4 z-20">
-            <div class="flex flex-col md:flex-row gap-4 justify-between">
-                <div class="flex items-center flex-wrap gap-2">
-                    <button data-filter="all" class="filter-btn active text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors flex items-center gap-1">Semua <span id="countAll" class="ml-1 bg-gray-400 text-white rounded-full px-2 text-xs font-bold">0</span></button>
-                    <button data-filter="image" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors flex items-center gap-1"><i class="fas fa-image mr-1 sm:mr-2"></i>Gambar <span id="countImage" class="ml-1 bg-gray-300 text-gray-700 rounded-full px-2 text-xs font-bold">0</span></button>
-                    <button data-filter="doc" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors flex items-center gap-1"><i class="fas fa-file-alt mr-1 sm:mr-2"></i>Dokumen <span id="countDoc" class="ml-1 bg-gray-300 text-gray-700 rounded-full px-2 text-xs font-bold">0</span></button>
-                    <button data-filter="audio" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors flex items-center gap-1"><i class="fas fa-music mr-1 sm:mr-2"></i>Audio <span id="countAudio" class="ml-1 bg-gray-300 text-gray-700 rounded-full px-2 text-xs font-bold">0</span></button>
-                    <button data-filter="video" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors flex items-center gap-1"><i class="fas fa-video mr-1 sm:mr-2"></i>Video <span id="countVideo" class="ml-1 bg-gray-300 text-gray-700 rounded-full px-2 text-xs font-bold">0</span></button>
-                    <button data-filter="archive" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors flex items-center gap-1"><i class="fas fa-file-archive mr-1 sm:mr-2"></i>Arsip <span id="countArchive" class="ml-1 bg-gray-300 text-gray-700 rounded-full px-2 text-xs font-bold">0</span></button>
+        <div class="rounded-xl shadow-md p-4 mb-6 sticky top-4 z-20" style="background-color: var(--bg-primary);">
+            <div class="flex items-center gap-3">
+                <!-- Filter buttons: scrollable, no wrap -->
+                <div class="flex items-center gap-2 overflow-x-auto flex-1 min-w-0 pb-0.5" style="scrollbar-width: none;">
+                    <button data-filter="all" class="filter-btn active flex-shrink-0 text-xs px-3 py-1.5 rounded-full transition-colors flex items-center gap-1">Semua <span id="countAll" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--primary-color); color: white;">0</span></button>
+                    <button data-filter="image" class="filter-btn flex-shrink-0 text-xs px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-image mr-1"></i>Gambar <span id="countImage" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
+                    <button data-filter="doc" class="filter-btn flex-shrink-0 text-xs px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-file-alt mr-1"></i>Dokumen <span id="countDoc" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
+                    <button data-filter="audio" class="filter-btn flex-shrink-0 text-xs px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-music mr-1"></i>Audio <span id="countAudio" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
+                    <button data-filter="video" class="filter-btn flex-shrink-0 text-xs px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-video mr-1"></i>Video <span id="countVideo" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
+                    <button data-filter="archive" class="filter-btn flex-shrink-0 text-xs px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-file-archive mr-1"></i>Arsip <span id="countArchive" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
                 </div>
-                <div class="flex gap-2">
-                    <div class="relative flex-grow">
-                        <input type="text" id="searchInput" placeholder="Cari file..." class="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <!-- Search + Refresh: fixed width, no shrink -->
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <div class="relative">
+                        <input type="text" id="searchInput" placeholder="Cari file..." class="py-1.5 pl-8 pr-3 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" style="width: 180px; background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color: var(--text-tertiary);"></i>
                     </div>
-                    <button id="refreshBtn" class="p-2 w-10 h-10 flex items-center justify-center rounded-full bg-white border border-gray-300 hover:bg-gray-100" title="Muat Ulang">
-                        <i class="fas fa-sync-alt text-indigo-600"></i>
+                    <button id="refreshBtn" class="p-2 w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full border" style="background-color: var(--bg-primary); border-color: var(--border-color);" title="Muat Ulang">
+                        <i class="fas fa-sync-alt text-xs" style="color: var(--primary-color);"></i>
                     </button>
                 </div>
             </div>
         </div>
 
         <div id="filesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 lg:gap-6">
-            <div id="loading-indicator" class="col-span-full text-center py-16 text-gray-500">
+            <div id="loading-indicator" class="col-span-full text-center py-16" style="color: var(--text-secondary);">
                 <i class="fas fa-spinner fa-spin text-3xl mb-4"></i>
                 <p>Memuat file, mohon tunggu...</p>
             </div>
         </div>
-        <div id="empty-state" class="col-span-full text-center py-16 text-gray-500 hidden">
-            <i class="fas fa-folder-open text-5xl mb-4 text-gray-300"></i>
+        <div id="empty-state" class="col-span-full text-center py-16 hidden" style="color: var(--text-secondary);">
+            <i class="fas fa-folder-open text-5xl mb-4" style="color: var(--text-tertiary);"></i>
             <p class="text-xl font-semibold">Tidak ada file ditemukan</p>
             <p>Coba unggah beberapa file atau ubah filter Anda.</p>
         </div>
 
         <div id="pagination-controls" class="text-center mt-8">
-            <button id="loadMoreBtn" class="bg-white text-indigo-600 font-semibold px-6 py-3 rounded-full shadow-md hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed hidden">
+            <button id="loadMoreBtn" class="font-semibold px-6 py-3 rounded-full shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed hidden" style="background-color: var(--bg-primary); color: var(--primary-color);">
                 Muat Lebih Banyak
             </button>
         </div>
     </div>
 
-    <div id="share-popover" class="hidden absolute z-50 bg-white rounded-lg shadow-xl border border-gray-200 p-2 flex flex-col gap-1 min-w-[220px] max-w-[280px] opacity-0 scale-95">
-        <button id="copy-cdn-btn" class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md flex items-center gap-2">
+    <div id="share-popover" class="hidden absolute z-50 rounded-lg shadow-xl border p-2 flex flex-col gap-1 min-w-[220px] max-w-[280px] opacity-0 scale-95" style="background-color: var(--bg-primary); border-color: var(--border-color);">
+        <button id="copy-cdn-btn" class="w-full text-left px-3 py-2 text-sm rounded-md flex items-center gap-2 transition-colors" style="color: var(--text-primary);" onmouseover="this.style.backgroundColor='var(--hover-bg)'" onmouseout="this.style.backgroundColor='transparent'">
             <i class="fas fa-link fa-fw"></i> <span class="truncate">Salin URL Publik</span>
         </button>
-        <button id="copy-presigned-btn" class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md flex items-center gap-2">
+        <button id="copy-presigned-btn" class="w-full text-left px-3 py-2 text-sm rounded-md flex items-center gap-2 transition-colors" style="color: var(--text-primary);" onmouseover="this.style.backgroundColor='var(--hover-bg)'" onmouseout="this.style.backgroundColor='transparent'">
             <i class="fas fa-user-clock fa-fw"></i> <span class="truncate">Salin URL Sementara</span>
         </button>
     </div>

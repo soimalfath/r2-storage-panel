@@ -3,6 +3,30 @@
  * Handles file upload, display, and management functionality
  */
 
+// --- Bucket Context ---
+// Redirect to bucket selector if no active bucket
+const _activeBucketId = sessionStorage.getItem('activeBucketId');
+const _activeBucketName = sessionStorage.getItem('activeBucketName');
+if (!_activeBucketId) {
+  window.location.href = '/bucket-selector';
+}
+
+// Patch fetch to always inject X-Bucket-ID for API calls
+const _origFetch = window.fetch.bind(window);
+window.fetch = function(input, init = {}) {
+  const url = typeof input === 'string' ? input : input.url;
+  if (_activeBucketId && (url.startsWith('/r2') || url.startsWith('/api'))) {
+    init.headers = Object.assign({}, init.headers, { 'X-Bucket-ID': _activeBucketId });
+  }
+  return _origFetch(input, init);
+};
+
+// Show active bucket name in header
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('active-bucket-name');
+  if (el && _activeBucketName) el.textContent = _activeBucketName;
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     // Configuration & State
     let isLoading = false;
@@ -185,6 +209,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 hasMoreFiles = !!nextToken;
             }
             allFiles = isRefresh ? files : [...allFiles, ...files];
+            // Normalize url field: publicUrl (permanent) > presignedUrl (for img display) > proxy download
+            allFiles = allFiles.map(f => ({
+                ...f,
+                url: f.url || f.publicUrl || f.presignedUrl || f.downloadUrl || '',
+            }));
 
             filterAndDisplayFiles();
             updateFilterCounts();
@@ -448,6 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (result.success && result.data && result.data.file) {
                     const newFile = result.data.file;
+                    newFile.url = newFile.url || newFile.publicUrl || newFile.presignedUrl || newFile.downloadUrl || '';
                     const newCard = createFileCard(newFile);
                     
                     // Ganti placeholder dengan kartu yang sebenarnya
@@ -690,13 +720,12 @@ document.addEventListener('DOMContentLoaded', () => {
         allFiles.forEach(file => {
             counts.all++;
             const type = getFileType(file.contentType);
-            if (counts.hasOwnProperty(type)) {
-                counts[type]++;
-            }
+            if (counts.hasOwnProperty(type)) counts[type]++;
         });
+        const suffix = hasMoreFiles ? '+' : '';
         for (const type in counts) {
             const el = document.getElementById(`count${type.charAt(0).toUpperCase() + type.slice(1)}`);
-            if (el) el.textContent = counts[type];
+            if (el) el.textContent = counts[type] + (type === 'all' ? suffix : '');
         }
     }
 
@@ -1015,11 +1044,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- App Initialization ---
+    async function fetchTotalCount() {
+        try {
+            const res = await fetchWithAutoRefresh('/api/stats/count');
+            if (!res.ok) return;
+            const data = await res.json();
+            const total = data.data?.totalFiles ?? data.totalFiles;
+            if (total !== undefined) {
+                const el = document.getElementById('countAll');
+                if (el) el.textContent = total;
+            }
+        } catch (e) { /* non-fatal */ }
+    }
+
     async function init() {
         const isAuthenticated = await checkAuth();
         if (isAuthenticated) {
             setupEventListeners();
             loadFiles(true);
+            fetchTotalCount(); // background — get real total without blocking UI
         }
     }
 

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Select Bucket — R2 Panel</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/main.css">
+  <script src="/js/theme.js"></script>
+  <style>
+    /* Ensure inputs are always readable regardless of theme */
+    #create-modal input, #import-modal input {
+      background-color: #ffffff !important;
+      color: #111827 !important;
+      border-color: #d1d5db !important;
+    }
+    [data-theme="dark"] #create-modal input,
+    [data-theme="dark"] #import-modal input {
+      background-color: #374151 !important;
+      color: #f9fafb !important;
+      border-color: #4b5563 !important;
+    }
+    /* Fix text visibility on bucket selector page */
+    body { color: var(--text-primary); }
+    .bucket-card-name { color: var(--text-primary) !important; }
+    .bucket-card-sub { color: var(--text-secondary) !important; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4" style="background-color: var(--bg-secondary);">
+
+<div id="toast-container" class="fixed bottom-5 right-5 z-[100] flex flex-col gap-3"></div>
+
+<div class="w-full max-w-2xl">
+  <!-- Header -->
+  <div class="text-center mb-8">
+    <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4" style="background-color: var(--bg-tertiary);">
+      <i class="fas fa-database text-2xl" style="color: var(--primary-color);"></i>
+    </div>
+    <h1 class="text-2xl font-bold" style="color: var(--text-primary)">Select Bucket</h1>
+    <p class="mt-1" style="color: var(--text-secondary)">Choose a bucket to manage or create a new one</p>
+  </div>
+
+  <!-- Bucket List -->
+  <div id="bucket-list" class="space-y-3 mb-6">
+    <div class="flex items-center justify-center py-8">
+      <i class="fas fa-spinner fa-spin text-gray-400 text-2xl"></i>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div id="bucket-actions" class="flex gap-3">
+    <button onclick="openCreateModal()" class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors">
+      <i class="fas fa-plus"></i> Add Bucket
+    </button>
+    <button onclick="openImportModal()" class="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-medium transition-colors">
+      <i class="fas fa-cloud-download-alt"></i> Import from Cloudflare
+    </button>
+    <button onclick="logout()" class="px-4 py-3 border rounded-xl transition-colors" style="color: var(--text-secondary); border-color: var(--border-color);">
+      <i class="fas fa-sign-out-alt"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Create Bucket Modal -->
+<div id="create-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+  <div class="rounded-2xl shadow-xl w-full max-w-lg" style="background-color: var(--bg-primary);">
+    <div class="flex items-center justify-between p-6" style="border-bottom: 1px solid var(--border-color);">
+      <h2 class="text-lg font-semibold" style="color: var(--text-primary);">Add Bucket</h2>
+      <button onclick="closeCreateModal()" class="hover:text-gray-600" style="color: var(--text-tertiary);">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <form id="create-form" onsubmit="submitCreate(event)" class="p-6 space-y-4">
+      <div>
+        <label class="block text-sm font-medium mb-1" style="color: var(--text-secondary);">Bucket Name</label>
+        <input id="f-name" type="text" placeholder="my-bucket" required
+          class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);">
+        <p class="text-xs mt-1" style="color: var(--text-tertiary);">Lowercase letters, numbers, hyphens (3–63 chars)</p>
+      </div>
+
+      <!-- Shown only when shared creds not configured -->
+      <div id="credential-fields">
+        <div class="mb-3">
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-secondary);">R2 Endpoint</label>
+          <input id="f-endpoint" type="url" placeholder="https://account-id.r2.cloudflarestorage.com"
+            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium mb-1" style="color: var(--text-secondary);">Access Key ID</label>
+            <input id="f-access-key" type="text" placeholder="Access Key ID"
+              class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" style="color: var(--text-secondary);">Secret Access Key</label>
+            <input id="f-secret-key" type="password" placeholder="Secret Access Key"
+              class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);">
+          </div>
+        </div>
+      </div>
+
+      <!-- Shown when shared creds are configured -->
+      <div id="credential-hint" class="hidden p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+        <p class="text-sm" style="color: var(--text-secondary);">
+          <i class="fas fa-bolt mr-1"></i> Using shared R2 credentials from env. No need to enter keys.
+        </p>
+      </div>
+      <div>
+        <label class="block text-sm font-medium mb-1" style="color: var(--text-secondary);">Public URL <span class="font-normal" style="color: var(--text-tertiary);">(optional)</span></label>
+        <input id="f-public-url" type="url" placeholder="https://pub-xxx.r2.dev"
+          class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);">
+      </div>
+      <div class="flex items-center gap-2">
+        <input id="f-create-cf" type="checkbox" class="rounded">
+        <label for="f-create-cf" class="text-sm" style="color: var(--text-secondary);">
+          Also create bucket on Cloudflare R2 <span style="color: var(--text-tertiary);">(requires CF_ACCOUNT_ID + CF_API_TOKEN in env)</span>
+        </label>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="closeCreateModal()" class="flex-1 px-4 py-2 border rounded-lg transition-colors" style="border-color: var(--border-color); color: var(--text-secondary); background-color: var(--bg-secondary);">
+          Cancel
+        </button>
+        <button type="submit" id="create-btn" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+          <span id="create-btn-text">Add Bucket</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Import from Cloudflare Modal -->
+<div id="import-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+  <div class="rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col" style="background-color: var(--bg-primary);">
+    <div class="flex items-center justify-between p-6" style="border-bottom: 1px solid var(--border-color);">
+      <h2 class="text-lg font-semibold" style="color: var(--text-primary);">Import from Cloudflare</h2>
+      <button onclick="closeImportModal()" style="color: var(--text-tertiary);">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Step 1: CF bucket list -->
+    <div id="import-step-1" class="p-6 flex-1 overflow-y-auto">
+      <p id="import-hint" class="text-sm mb-4" style="color: var(--text-secondary);">
+        <i class="fas fa-spinner fa-spin mr-1"></i> Checking credentials...
+      </p>
+      <div id="cf-bucket-list" class="space-y-2">
+        <div class="flex items-center justify-center py-8">
+          <i class="fas fa-spinner fa-spin text-gray-400 text-2xl"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Fill credentials for selected bucket -->
+    <div id="import-step-2" class="p-6 hidden">
+      <div class="flex items-center gap-2 mb-4">
+        <button onclick="backToStep1()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+          <i class="fas fa-arrow-left"></i>
+        </button>
+        <h3 class="font-semibold" style="color: var(--text-primary);">Add credentials for <span id="import-bucket-name-label" class="text-blue-600"></span></h3>
+      </div>
+      <form id="import-form" onsubmit="submitImport(event)" class="space-y-4">
+        <input type="hidden" id="i-name">
+        <input type="hidden" id="i-endpoint">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium mb-1" style="color: var(--text-secondary);">Access Key ID</label>
+            <input id="i-access-key" type="text" placeholder="Access Key ID" required
+              class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);">
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1" style="color: var(--text-secondary);">Secret Access Key</label>
+            <input id="i-secret-key" type="password" placeholder="Secret Access Key" required
+              class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1" style="color: var(--text-secondary);">Public URL <span class="font-normal" style="color: var(--text-tertiary);">(optional)</span></label>
+          <input id="i-public-url" type="url" placeholder="https://pub-xxx.r2.dev"
+            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);">
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="backToStep1()" class="flex-1 px-4 py-2 border rounded-lg transition-colors" style="border-color: var(--border-color); color: var(--text-secondary); background-color: var(--bg-secondary);">
+            Back
+          </button>
+          <button type="submit" id="import-btn" class="flex-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors">
+            <span id="import-btn-text">Add Bucket</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Public URL Modal -->
+<div id="edit-url-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+  <div class="rounded-2xl shadow-xl w-full max-w-md" style="background-color: var(--bg-primary);">
+    <div class="flex items-center justify-between p-5" style="border-bottom: 1px solid var(--border-color);">
+      <h2 class="text-base font-semibold" style="color: var(--text-primary);">Set Public URL</h2>
+      <button onclick="closeEditUrlModal()" style="color: var(--text-tertiary);"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="p-5 space-y-4">
+      <p class="text-sm" style="color: var(--text-secondary);">Bucket: <span id="edit-url-bucket-name" class="font-semibold" style="color: var(--text-primary);"></span></p>
+      <div>
+        <label class="block text-sm font-medium mb-1" style="color: var(--text-secondary);">Public URL <span class="font-normal" style="color: var(--text-tertiary);">(optional)</span></label>
+        <input id="edit-url-input" type="url" placeholder="https://cdn.example.com"
+          class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+          style="background-color: var(--bg-secondary); border-color: var(--border-color); color: var(--text-primary);">
+        <p class="text-xs mt-1" style="color: var(--text-tertiary);">Used as base URL for file links. Leave empty to use presigned URLs.</p>
+      </div>
+      <div class="flex gap-3 pt-1">
+        <button type="button" onclick="closeEditUrlModal()" class="flex-1 px-4 py-2 border rounded-lg text-sm transition-colors" style="border-color: var(--border-color); color: var(--text-secondary); background-color: var(--bg-secondary);">Cancel</button>
+        <button type="button" onclick="submitEditUrl()" id="edit-url-btn" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/bucket-selector.js"></script>
+</body>
+</html>

@@ -45,6 +45,11 @@ app.use('/api', async (req, res, next) => {
       return await r2Handler(req, res);
     }
     
+    if (path === '/buckets' || path.startsWith('/buckets/')) {
+      const bucketsHandler = require('./api/buckets');
+      return await bucketsHandler(req, res);
+    }
+    
     if (path === '/upload-multiple') {
       const uploadMultipleHandler = require('./api/upload-multiple');
       return await uploadMultipleHandler(req, res);
@@ -111,6 +116,10 @@ app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
+
+app.get('/bucket-selector', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'bucket-selector.html'));
+});
 
 app.get('/webp-converter', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'webp-converter.html'));

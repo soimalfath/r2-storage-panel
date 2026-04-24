@@ -1,154 +1,57 @@
-const { authenticateApiKey, authenticateHybrid, handleCors, errorResponse, successResponse } = require('./utils');
-const { listObjects, putObject, headObject, deleteObject, getObject, getPresignedUrl } = require('./r2-client');
+const { authenticateHybrid, handleCors, errorResponse, successResponse, setCookie } = require('./utils');
+const { resolveClientAndBucket, listObjects, putObject, headObject, deleteObject, getPresignedUrl } = require('./r2-client');
 const formidable = require('formidable');
 
-// Helper: get key from req
 function getKey(req) {
-  if (req.query && req.query.key) return req.query.key;
-  if (req.query && req.query["[key]"]) return req.query["[key]"];
-  if (req.url && req.url.match(/\/([^\/]+)$/)) return decodeURIComponent(req.url.match(/\/([^\/]+)$/)[1]);
+  if (req.query?.key) return req.query.key;
+  if (req.url?.match(/\/([^/]+)$/)) return decodeURIComponent(req.url.match(/\/([^/]+)$/)[1]);
   return null;
 }
 
-// Helper: get content type from file extension
 function getContentTypeFromKey(key) {
   const ext = key.toLowerCase().split('.').pop();
-  const mimeTypes = {
-    // Images
-    'jpg': 'image/jpeg',
-    'jpeg': 'image/jpeg',
-    'png': 'image/png',
-    'gif': 'image/gif',
-    'webp': 'image/webp',
-    'svg': 'image/svg+xml',
-    'bmp': 'image/bmp',
-    'ico': 'image/x-icon',
-    
-    // Videos
-    'mp4': 'video/mp4',
-    'avi': 'video/x-msvideo',
-    'mov': 'video/quicktime',
-    'wmv': 'video/x-ms-wmv',
-    'flv': 'video/x-flv',
-    'webm': 'video/webm',
-    'mkv': 'video/x-matroska',
-    
-    // Audio
-    'mp3': 'audio/mpeg',
-    'wav': 'audio/wav',
-    'ogg': 'audio/ogg',
-    'aac': 'audio/aac',
-    'flac': 'audio/flac',
-    'm4a': 'audio/mp4',
-    
-    // Documents
-    'pdf': 'application/pdf',
-    'doc': 'application/msword',
-    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'xls': 'application/vnd.ms-excel',
-    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'ppt': 'application/vnd.ms-powerpoint',
-    'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    
-    // Text
-    'txt': 'text/plain',
-    'html': 'text/html',
-    'css': 'text/css',
-    'js': 'application/javascript',
-    'json': 'application/json',
-    'xml': 'application/xml',
-    'csv': 'text/csv',
-    
-    // Archives
-    'zip': 'application/zip',
-    'rar': 'application/vnd.rar',
-    '7z': 'application/x-7z-compressed',
-    'tar': 'application/x-tar',
-    'gz': 'application/gzip'
-  };
-  
-  return mimeTypes[ext] || 'application/octet-stream';
+  const m = { jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',gif:'image/gif',webp:'image/webp',svg:'image/svg+xml',mp4:'video/mp4',webm:'video/webm',mp3:'audio/mpeg',wav:'audio/wav',pdf:'application/pdf',txt:'text/plain',json:'application/json',zip:'application/zip' };
+  return m[ext] || 'application/octet-stream';
+}
+
+function getFileType(contentType) {
+  if (!contentType) return 'doc';
+  if (contentType.startsWith('image/')) return 'image';
+  if (contentType.startsWith('video/')) return 'video';
+  if (contentType.startsWith('audio/')) return 'audio';
+  if (['application/zip','application/vnd.rar','application/x-7z-compressed','application/x-tar','application/gzip'].includes(contentType)) return 'archive';
+  return 'doc';
 }
 
 module.exports = async function handler(req, res) {
   if (handleCors(req, res)) return;
 
-  // --- List files (GET /api/files) ---
+  let ctx;
+  try {
+    ctx = await resolveClientAndBucket(req);
+  } catch (err) {
+    return errorResponse(res, 400, err.message);
+  }
+  const { client, bucketName, publicUrl: baseUrl } = ctx;
+
+  // GET /api/files
   if (req.method === 'GET' && req.url.startsWith('/files')) {
     try {
-      const { user, newAccessToken } = authenticateHybrid(req);
-      // Set new access token if JWT was refreshed
-      if (newAccessToken) {
-        const { setCookie } = require('./utils');
-        const accessCookie = setCookie('accessToken', newAccessToken, { maxAge: 15 * 60 });
-        res.setHeader('Set-Cookie', accessCookie);
-      }
+      const { newAccessToken } = authenticateHybrid(req);
+      if (newAccessToken) res.setHeader('Set-Cookie', setCookie('accessToken', newAccessToken, { maxAge: 15 * 60 }));
+
       const { token, prefix, limit, search, type } = req.query;
-      const Bucket = process.env.R2_BUCKET_NAME;
-      if (!Bucket) return errorResponse(res, 500, 'Server configuration error: Bucket name is missing.');
-      const result = await listObjects({
-        Bucket,
-        ContinuationToken: token || undefined,
-        Prefix: typeof prefix === 'string' ? prefix : undefined,
-        MaxKeys: parseInt(limit, 10) || 100
-      });
-      const baseUrl = process.env.R2_PUBLIC_URL || '';
+      const result = await listObjects(client, { Bucket: bucketName, ContinuationToken: token || undefined, Prefix: typeof prefix === 'string' ? prefix : undefined, MaxKeys: parseInt(limit, 10) || 100 });
+
       let files = await Promise.all((result.Contents || []).map(async obj => {
         const publicUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${obj.Key}` : null;
         let presignedUrl = null;
-        try {
-          presignedUrl = await getPresignedUrl ? await getPresignedUrl({
-            Bucket,
-            Key: obj.Key,
-            expiresIn: 3600
-          }) : null;
-        } catch (e) {
-          presignedUrl = null;
-        }
-        return {
-          key: obj.Key,
-          filename: obj.Key,
-          size: obj.Size,
-          lastModified: obj.LastModified,
-          contentType: getContentTypeFromKey(obj.Key),
-          publicUrl,
-          presignedUrl,
-          downloadUrl: `/r2/download/${encodeURIComponent(obj.Key)}`
-        };
+        try { presignedUrl = await getPresignedUrl(client, { Bucket: bucketName, Key: obj.Key, expiresIn: 604800 }); } catch (e) {}
+        return { key: obj.Key, filename: obj.Key, size: obj.Size, lastModified: obj.LastModified, contentType: getContentTypeFromKey(obj.Key), publicUrl, presignedUrl, downloadUrl: `/r2/download/${encodeURIComponent(obj.Key)}` };
       }));
 
-      // --- Backend Filtering ---
-      if (search && typeof search === 'string') {
-        const searchLower = search.toLowerCase();
-        files = files.filter(f => f.key.toLowerCase().includes(searchLower));
-      }
-      if (type && type !== 'all') {
-        // getFileType logic: match frontend
-        const getFileType = (contentType) => {
-          if (!contentType) return 'doc';
-          if (contentType.startsWith('image/')) return 'image';
-          if (contentType.startsWith('video/')) return 'video';
-          if (contentType.startsWith('audio/')) return 'audio';
-          if ([
-            'application/pdf',
-            'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'application/vnd.ms-excel',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'text/plain',
-            'text/csv'
-          ].includes(contentType)) return 'doc';
-          if ([
-            'application/zip',
-            'application/vnd.rar',
-            'application/x-7z-compressed',
-            'application/x-tar',
-            'application/gzip'
-          ].includes(contentType)) return 'archive';
-          return 'doc';
-        };
-        files = files.filter(f => getFileType(f.contentType) === type);
-      }
+      if (search) files = files.filter(f => f.key.toLowerCase().includes(search.toLowerCase()));
+      if (type && type !== 'all') files = files.filter(f => getFileType(f.contentType) === type);
 
       return successResponse(res, { files, pagination: { nextToken: result.NextContinuationToken || null, isTruncated: result.IsTruncated || false, count: files.length } });
     } catch (error) {
@@ -158,29 +61,25 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // --- Upload file (POST /api/files/upload) ---
+  // POST /api/files/upload
   if (req.method === 'POST' && req.url === '/files/upload') {
     try {
-      const { user, newAccessToken } = authenticateHybrid(req);
-      // Set new access token if JWT was refreshed
-      if (newAccessToken) {
-        const { setCookie } = require('./utils');
-        const accessCookie = setCookie('accessToken', newAccessToken, { maxAge: 15 * 60 });
-        res.setHeader('Set-Cookie', accessCookie);
-      }
+      const { newAccessToken } = authenticateHybrid(req);
+      if (newAccessToken) res.setHeader('Set-Cookie', setCookie('accessToken', newAccessToken, { maxAge: 15 * 60 }));
+
       const form = new formidable.IncomingForm({ maxFileSize: 25 * 1024 * 1024, maxFiles: 1 });
-      const [fields, files] = await form.parse(req);
-      if (!files.file || files.file.length === 0) return errorResponse(res, 400, 'No file uploaded');
+      const [, files] = await form.parse(req);
+      if (!files.file?.length) return errorResponse(res, 400, 'No file uploaded');
       const file = Array.isArray(files.file) ? files.file[0] : files.file;
-      if (!file.size || file.size === 0) return errorResponse(res, 400, 'Empty file uploaded');
-      const originalName = file.originalFilename || file.name || 'unknown';
-      const filename = Date.now() + '-' + originalName;
+      if (!file.size) return errorResponse(res, 400, 'Empty file uploaded');
+
       const fs = require('fs');
+      const originalName = file.originalFilename || 'unknown';
+      const filename = `${Date.now()}-${originalName}`;
       const fileBuffer = fs.readFileSync(file.filepath);
-      await putObject({ Bucket: process.env.R2_BUCKET_NAME, Key: filename, Body: fileBuffer, ContentType: file.mimetype || 'application/octet-stream' });
-      const baseUrl = process.env.R2_PUBLIC_URL || '';
-      const publicUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${filename}` : null;
-      return successResponse(res, { filename, key: filename, size: file.size, contentType: file.mimetype || 'application/octet-stream', url: publicUrl, downloadUrl: `/r2/download/${filename}` });
+      await putObject(client, { Bucket: bucketName, Key: filename, Body: fileBuffer, ContentType: file.mimetype || 'application/octet-stream' });
+      const url = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${filename}` : null;
+      return successResponse(res, { filename, key: filename, size: file.size, contentType: file.mimetype, url, downloadUrl: `/r2/download/${filename}` });
     } catch (error) {
       console.error('API Upload error:', error);
       if (error.message.includes('API key') || error.message.includes('token') || error.message.includes('authenticate')) return errorResponse(res, 401, error.message);
@@ -188,89 +87,38 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // --- Upload & Convert to WebP (POST /api/files/upload-webp) ---
+  // POST /api/files/upload-webp
   if (req.method === 'POST' && req.url === '/files/upload-webp') {
     try {
-      const { user, newAccessToken } = authenticateHybrid(req);
-      // Set new access token if JWT was refreshed
-      if (newAccessToken) {
-        const { setCookie } = require('./utils');
-        const accessCookie = setCookie('accessToken', newAccessToken, { maxAge: 15 * 60 });
-        res.setHeader('Set-Cookie', accessCookie);
-      }
-      
+      const { newAccessToken } = authenticateHybrid(req);
+      if (newAccessToken) res.setHeader('Set-Cookie', setCookie('accessToken', newAccessToken, { maxAge: 15 * 60 }));
+
       const form = new formidable.IncomingForm({ maxFileSize: 10 * 1024 * 1024, maxFiles: 1 });
       const [fields, files] = await form.parse(req);
-      
-      if (!files.image || files.image.length === 0) return errorResponse(res, 400, 'No image file uploaded');
+      if (!files.image?.length) return errorResponse(res, 400, 'No image uploaded');
       const file = Array.isArray(files.image) ? files.image[0] : files.image;
-      if (!file.size || file.size === 0) return errorResponse(res, 400, 'Empty file uploaded');
-      
-      // Check if file is an image
-      if (!file.mimetype || !file.mimetype.startsWith('image/')) {
-        return errorResponse(res, 400, 'Only image files are allowed');
-      }
-      
-      const sharp = require('sharp');
+      if (!file.size) return errorResponse(res, 400, 'Empty file uploaded');
+      if (!file.mimetype?.startsWith('image/')) return errorResponse(res, 400, 'Only image files allowed');
+
       const fs = require('fs');
-      const originalName = file.originalFilename || file.name || 'unknown';
+      const sharp = require('sharp');
+      const originalName = file.originalFilename || 'unknown';
       const quality = parseInt(fields.quality?.[0] || fields.quality || 80, 10);
-      
       let fileBuffer = fs.readFileSync(file.filepath);
       let fileName = originalName;
-      let contentType = 'image/webp';
       let wasConverted = false;
 
-      // Check if file is already WebP
       if (file.mimetype !== 'image/webp') {
-        console.log(`Converting ${fileName} to WebP format...`);
-        
-        // Convert to WebP
-        try {
-          fileBuffer = await sharp(fileBuffer).webp({ quality }).toBuffer();
-          wasConverted = true;
-          
-          // Update filename to have .webp extension
-          const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
-          fileName = `${nameWithoutExt}.webp`;
-        } catch (convertError) {
-          console.error('WebP conversion error:', convertError);
-          return errorResponse(res, 500, 'Failed to convert image to WebP', convertError.message);
-        }
+        fileBuffer = await sharp(fileBuffer).webp({ quality }).toBuffer();
+        wasConverted = true;
+        const base = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
+        fileName = `${base}.webp`;
       }
 
-      // Generate unique filename with timestamp
-      const timestamp = Date.now();
-      const uniqueFileName = `webp/${timestamp}-${fileName}`;
-
-      // Upload to R2
-      await putObject({ 
-        Bucket: process.env.R2_BUCKET_NAME, 
-        Key: uniqueFileName, 
-        Body: fileBuffer, 
-        ContentType: contentType 
-      });
-      
-      const baseUrl = process.env.R2_PUBLIC_URL || '';
-      const publicUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${uniqueFileName}` : null;
-      
-      return successResponse(
-        res,
-        {
-          filename: uniqueFileName,
-          key: uniqueFileName,
-          originalName: originalName,
-          convertedName: fileName,
-          size: fileBuffer.length,
-          contentType: contentType,
-          url: publicUrl,
-          downloadUrl: `/r2/download/${uniqueFileName}`,
-          wasConverted: wasConverted,
-          originalFormat: file.mimetype,
-          uploadedAt: new Date().toISOString()
-        },
-        'Image uploaded and converted successfully'
-      );
+      const uniqueKey = `webp/${Date.now()}-${fileName}`;
+      await putObject(client, { Bucket: bucketName, Key: uniqueKey, Body: fileBuffer, ContentType: 'image/webp' });
+      const url = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${uniqueKey}` : null;
+      return successResponse(res, { filename: uniqueKey, key: uniqueKey, originalName, convertedName: fileName, size: fileBuffer.length, contentType: 'image/webp', url, downloadUrl: `/r2/download/${uniqueKey}`, wasConverted, originalFormat: file.mimetype, uploadedAt: new Date().toISOString() }, 'Image uploaded and converted successfully');
     } catch (error) {
       console.error('API WebP Upload error:', error);
       if (error.message.includes('API key') || error.message.includes('token') || error.message.includes('authenticate')) return errorResponse(res, 401, error.message);
@@ -278,26 +126,19 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // --- Delete file (DELETE /api/files/:key) ---
+  // DELETE /api/files/:key
   if (req.method === 'DELETE' && req.url.startsWith('/files/')) {
     try {
-      const { user, newAccessToken } = authenticateHybrid(req);
-      // Set new access token if JWT was refreshed
-      if (newAccessToken) {
-        const { setCookie } = require('./utils');
-        const accessCookie = setCookie('accessToken', newAccessToken, { maxAge: 15 * 60 });
-        res.setHeader('Set-Cookie', accessCookie);
-      }
+      const { newAccessToken } = authenticateHybrid(req);
+      if (newAccessToken) res.setHeader('Set-Cookie', setCookie('accessToken', newAccessToken, { maxAge: 15 * 60 }));
+
       const key = getKey(req);
       if (!key) return errorResponse(res, 400, 'File key is required');
-      const Bucket = process.env.R2_BUCKET_NAME;
-      try {
-        await headObject({ Bucket, Key: key });
-      } catch (err) {
-        if (err.name === 'NotFound' || err.message.includes('not found')) return errorResponse(res, 404, 'File not found');
+      try { await headObject(client, { Bucket: bucketName, Key: key }); } catch (err) {
+        if (err.name === 'NotFound') return errorResponse(res, 404, 'File not found');
         throw err;
       }
-      await deleteObject({ Bucket, Key: key });
+      await deleteObject(client, { Bucket: bucketName, Key: key });
       return successResponse(res, { message: 'File deleted successfully', key });
     } catch (error) {
       console.error('API Delete error:', error);
@@ -306,6 +147,5 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // --- Not found ---
   return errorResponse(res, 404, 'Not found');
-}
+};
