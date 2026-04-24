@@ -51,8 +51,8 @@ async function loadBuckets() {
           <i class="fas fa-bucket text-blue-500 dark:text-blue-400"></i>
         </div>
         <div class="flex-1 min-w-0">
-          <p class="font-semibold text-gray-900 dark:text-white truncate">${escHtml(b.name)}</p>
-          <p class="text-xs text-gray-400 truncate">${new Date(b.createdAt).toLocaleDateString('id-ID', {day:'numeric',month:'short',year:'numeric'})}</p>
+          <p class="bucket-card-name font-semibold truncate">${escHtml(b.name)}</p>
+          <p class="bucket-card-sub text-xs truncate">${new Date(b.createdAt).toLocaleDateString('id-ID', {day:'numeric',month:'short',year:'numeric'})}</p>
         </div>
         <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <button onclick="event.stopPropagation(); deleteBucket('${b.id}', '${escHtml(b.name)}')" class="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Remove from panel">
