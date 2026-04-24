@@ -102,7 +102,7 @@ module.exports = async function handler(req, res) {
       const hasSharedCreds = !!(process.env.R2_SHARED_ACCESS_KEY_ID && process.env.R2_SHARED_SECRET_ACCESS_KEY);
       const buckets = (data.result?.buckets || []).map(b => {
         // Auto-detect public URL from CF domains if bucket has public access enabled
-        const publicDomain = b.domains?.find(d => d.enabled || d.status === 'active')?.domain || b.public_domain || null;
+        const publicDomain = (b.domains || b.custom_domains || []).find(d => d.enabled || d.status === 'active' || d.status === 'Active')?.domain || b.public_domain || null;
         const publicUrl = publicDomain ? `https://${publicDomain}` : null;
         return {
           name: b.name,
@@ -148,7 +148,7 @@ module.exports = async function handler(req, res) {
           const cfData = await cfRes.json();
           if (cfData.success && cfData.result) {
             const b = cfData.result;
-            const publicDomain = b.domains?.find(d => d.enabled || d.status === 'active')?.domain || b.public_domain || null;
+            const publicDomain = (b.domains || b.custom_domains || []).find(d => d.enabled || d.status === 'active' || d.status === 'Active')?.domain || b.public_domain || null;
             if (publicDomain) autoPublicUrl = `https://${publicDomain}`;
           }
         } catch (e) { /* non-fatal */ }
@@ -223,7 +223,7 @@ module.exports = async function handler(req, res) {
           const cfData = await cfRes.json();
           if (cfData.success && cfData.result) {
             const b = cfData.result;
-            const publicDomain = b.domains?.find(d => d.enabled || d.status === 'active')?.domain || b.public_domain || null;
+            const publicDomain = (b.domains || b.custom_domains || []).find(d => d.enabled || d.status === 'active' || d.status === 'Active')?.domain || b.public_domain || null;
             if (publicDomain) resolvedPublicUrl = `https://${publicDomain}`;
           }
         } catch (e) { /* non-fatal */ }
@@ -257,7 +257,7 @@ module.exports = async function handler(req, res) {
       if (!cfData.success) return errorResponse(res, 400, cfData.errors?.[0]?.message || 'CF API error');
 
       const b = cfData.result;
-      const publicDomain = b.domains?.find(d => d.enabled || d.status === 'active')?.domain || b.public_domain || null;
+      const publicDomain = (b.domains || b.custom_domains || []).find(d => d.enabled || d.status === 'active' || d.status === 'Active')?.domain || b.public_domain || null;
       const publicUrl = publicDomain ? `https://${publicDomain}` : '';
 
       const updated = await updateBucket(id, { publicUrl });

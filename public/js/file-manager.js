@@ -720,13 +720,12 @@ document.addEventListener('DOMContentLoaded', () => {
         allFiles.forEach(file => {
             counts.all++;
             const type = getFileType(file.contentType);
-            if (counts.hasOwnProperty(type)) {
-                counts[type]++;
-            }
+            if (counts.hasOwnProperty(type)) counts[type]++;
         });
+        const suffix = hasMoreFiles ? '+' : '';
         for (const type in counts) {
             const el = document.getElementById(`count${type.charAt(0).toUpperCase() + type.slice(1)}`);
-            if (el) el.textContent = counts[type];
+            if (el) el.textContent = counts[type] + (type === 'all' ? suffix : '');
         }
     }
 
