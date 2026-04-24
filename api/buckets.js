@@ -61,6 +61,24 @@ module.exports = async function handler(req, res) {
     }, 'Config retrieved');
   }
 
+  // GET /api/buckets/debug-cf/:name — raw CF API response for debugging domain detection
+  if (method === 'GET' && path.startsWith('/buckets/debug-cf/')) {
+    try {
+      const bucketName = decodeURIComponent(path.replace('/buckets/debug-cf/', ''));
+      const accountId = process.env.CF_ACCOUNT_ID;
+      const apiToken = process.env.CF_API_TOKEN;
+      if (!accountId || !apiToken) return errorResponse(res, 400, 'CF_ACCOUNT_ID and CF_API_TOKEN required');
+      const cfRes = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets/${encodeURIComponent(bucketName)}`,
+        { headers: { 'Authorization': `Bearer ${apiToken}` } }
+      );
+      const cfData = await cfRes.json();
+      return successResponse(res, cfData, 'Raw CF response');
+    } catch (err) {
+      return errorResponse(res, 500, err.message);
+    }
+  }
+
   // GET /api/buckets/cf-list — list bucket names from Cloudflare API
   if (method === 'GET' && path === '/buckets/cf-list') {
     try {
