@@ -45,15 +45,23 @@ class ThemeManager {
         const header = document.querySelector('header');
         
         if (headerActions) {
-            const lastButton = headerActions.lastElementChild;
-            headerActions.insertBefore(toggleBtn, lastButton);
+            // Insert before the last button in header actions
+            headerActions.insertBefore(toggleBtn, headerActions.lastElementChild);
         } else if (headerGap) {
+            // Append to header gap container
             headerGap.appendChild(toggleBtn);
         } else if (header) {
-            header.appendChild(toggleBtn);
+            // Create a container for the toggle if header exists but no suitable container
+            const container = document.createElement('div');
+            container.className = 'absolute top-4 right-4';
+            container.appendChild(toggleBtn);
+            header.appendChild(container);
         } else {
             // Fallback: floating toggle — safe, never inside page content
-            toggleBtn.className += ' fixed top-4 right-4 z-50 bg-white border border-gray-300 shadow-lg';
+            toggleBtn.className += ' fixed top-4 right-4 z-50 shadow-lg';
+            toggleBtn.style.backgroundColor = 'var(--bg-primary)';
+            toggleBtn.style.borderColor = 'var(--border-color)';
+            toggleBtn.style.color = 'var(--text-primary)';
             document.body.appendChild(toggleBtn);
         }
     }

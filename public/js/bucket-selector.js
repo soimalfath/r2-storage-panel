@@ -38,7 +38,7 @@ async function loadBuckets() {
 
     if (buckets.length === 0) {
       list.innerHTML = `
-        <div class="text-center py-10 text-gray-400 dark:text-gray-500">
+        <div class="text-center py-10" style="color: var(--text-tertiary);">
           <i class="fas fa-database text-4xl mb-3 block opacity-30"></i>
           <p>No buckets yet. Add your first bucket.</p>
         </div>`;
@@ -46,19 +46,19 @@ async function loadBuckets() {
     }
 
     list.innerHTML = buckets.map(b => `
-      <div class="group flex items-center gap-4 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all cursor-pointer" onclick="selectBucket('${b.id}', '${escHtml(b.name)}')">
-        <div class="flex-shrink-0 w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-          <i class="fas fa-bucket text-blue-500 dark:text-blue-400"></i>
+      <div class="group flex items-center gap-4 p-4 border rounded-xl hover:shadow-md transition-all cursor-pointer" style="background-color: var(--bg-primary); border-color: var(--border-color);" onclick="selectBucket('${b.id}', '${escHtml(b.name)}')" onmouseover="this.style.borderColor='var(--primary-color)'" onmouseout="this.style.borderColor='var(--border-color)'">
+        <div class="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center" style="background-color: var(--bg-tertiary);">
+          <i class="fas fa-bucket" style="color: var(--primary-color);"></i>
         </div>
         <div class="flex-1 min-w-0">
           <p class="bucket-card-name font-semibold truncate">${escHtml(b.name)}</p>
           <p class="bucket-card-sub text-xs truncate">${new Date(b.createdAt).toLocaleDateString('id-ID', {day:'numeric',month:'short',year:'numeric'})}</p>
         </div>
         <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onclick="event.stopPropagation(); deleteBucket('${b.id}', '${escHtml(b.name)}')" class="p-1.5 text-gray-400 hover:text-red-500 transition-colors" title="Remove from panel">
+          <button onclick="event.stopPropagation(); deleteBucket('${b.id}', '${escHtml(b.name)}')" class="p-1.5 hover:text-red-500 transition-colors" style="color: var(--text-tertiary);" title="Remove from panel">
             <i class="fas fa-trash text-sm"></i>
           </button>
-          <i class="fas fa-chevron-right text-gray-300 dark:text-gray-600"></i>
+          <i class="fas fa-chevron-right" style="color: var(--text-tertiary);"></i>
         </div>
       </div>
     `).join('');

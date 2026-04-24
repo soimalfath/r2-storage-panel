@@ -299,6 +299,22 @@ body {
     background-color: var(--bg-primary);
 }
 
+/* Light mode input fixes */
+input,
+textarea,
+select {
+    background-color: var(--bg-primary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--primary-color);
+    background-color: var(--bg-primary);
+}
+
 /* WebP Converter Specific Styles */
 .quality-slider {
     width: 100%;
