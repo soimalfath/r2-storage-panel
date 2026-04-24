@@ -55,6 +55,9 @@ async function loadBuckets() {
           <p class="bucket-card-sub text-xs truncate">${new Date(b.createdAt).toLocaleDateString('id-ID', {day:'numeric',month:'short',year:'numeric'})}</p>
         </div>
         <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onclick="event.stopPropagation(); copyBucketId('${b.id}', '${escHtml(b.name)}')" class="p-1.5 hover:text-indigo-500 transition-colors" style="color: var(--text-tertiary);" title="Copy Bucket ID">
+            <i class="fas fa-fingerprint text-sm"></i>
+          </button>
           <button onclick="event.stopPropagation(); syncBucket('${b.id}', '${escHtml(b.name)}')" class="p-1.5 hover:text-blue-500 transition-colors" style="color: var(--text-tertiary);" title="Sync public URL from Cloudflare">
             <i class="fas fa-sync-alt text-sm"></i>
           </button>
@@ -124,6 +127,21 @@ async function submitCreate(e) {
     btn.disabled = false;
     btnText.textContent = 'Add Bucket';
   }
+}
+
+function copyBucketId(id, name) {
+  navigator.clipboard.writeText(id).then(() => {
+    showToast(`Bucket ID copied: ${name}`, 'success');
+  }).catch(() => {
+    // fallback for older browsers
+    const el = document.createElement('textarea');
+    el.value = id;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    showToast(`Bucket ID copied: ${name}`, 'success');
+  });
 }
 
 async function syncBucket(id, name) {
