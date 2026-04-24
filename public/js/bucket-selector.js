@@ -143,18 +143,46 @@ function copyBucketId(id, name) {
   });
 }
 
+let _editUrlBucketId = null;
+
 function editPublicUrl(id, name, currentUrl) {
-  const url = prompt(`Public URL for "${name}":\n(e.g. https://cdn.example.com — leave empty to clear)`, currentUrl || '');
-  if (url === null) return; // cancelled
-  fetch(`/api/buckets/${id}/sync`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ publicUrl: url.trim() }),
-  }).then(r => r.json()).then(data => {
+  _editUrlBucketId = id;
+  document.getElementById('edit-url-bucket-name').textContent = name;
+  document.getElementById('edit-url-input').value = currentUrl || '';
+  document.getElementById('edit-url-modal').classList.remove('hidden');
+  document.getElementById('edit-url-modal').classList.add('flex');
+  setTimeout(() => document.getElementById('edit-url-input').focus(), 50);
+}
+
+function closeEditUrlModal() {
+  document.getElementById('edit-url-modal').classList.add('hidden');
+  document.getElementById('edit-url-modal').classList.remove('flex');
+  _editUrlBucketId = null;
+}
+
+async function submitEditUrl() {
+  if (!_editUrlBucketId) return;
+  const publicUrl = document.getElementById('edit-url-input').value.trim();
+  const btn = document.getElementById('edit-url-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  try {
+    const res = await fetch(`/api/buckets/${_editUrlBucketId}/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ publicUrl }),
+    });
+    const data = await res.json();
     if (data.meta?.code !== 200) throw new Error(data.meta?.message || 'Failed');
-    showToast(url.trim() ? `Public URL set: ${url.trim()}` : 'Public URL cleared', 'success');
+    showToast(publicUrl ? `Public URL saved` : 'Public URL cleared', 'success');
+    closeEditUrlModal();
     loadBuckets();
-  }).catch(err => showToast(err.message, 'error'));
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save';
+  }
 }
 
 async function deleteBucket(id, name) {

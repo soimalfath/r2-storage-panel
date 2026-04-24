@@ -218,22 +218,24 @@
         </header>
 
         <div class="rounded-xl shadow-md p-4 mb-6 sticky top-4 z-20" style="background-color: var(--bg-primary);">
-            <div class="flex flex-col md:flex-row gap-4 justify-between">
-                <div class="flex items-center flex-wrap gap-2">
-                    <button data-filter="all" class="filter-btn active text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full transition-colors flex items-center gap-1">Semua <span id="countAll" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--primary-color); color: white;">0</span></button>
-                    <button data-filter="image" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-image mr-1 sm:mr-2"></i>Gambar <span id="countImage" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
-                    <button data-filter="doc" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-file-alt mr-1 sm:mr-2"></i>Dokumen <span id="countDoc" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
-                    <button data-filter="audio" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-music mr-1 sm:mr-2"></i>Audio <span id="countAudio" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
-                    <button data-filter="video" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-video mr-1 sm:mr-2"></i>Video <span id="countVideo" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
-                    <button data-filter="archive" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-file-archive mr-1 sm:mr-2"></i>Arsip <span id="countArchive" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
+            <div class="flex items-center gap-3">
+                <!-- Filter buttons: scrollable, no wrap -->
+                <div class="flex items-center gap-2 overflow-x-auto flex-1 min-w-0 pb-0.5" style="scrollbar-width: none;">
+                    <button data-filter="all" class="filter-btn active flex-shrink-0 text-xs px-3 py-1.5 rounded-full transition-colors flex items-center gap-1">Semua <span id="countAll" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--primary-color); color: white;">0</span></button>
+                    <button data-filter="image" class="filter-btn flex-shrink-0 text-xs px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-image mr-1"></i>Gambar <span id="countImage" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
+                    <button data-filter="doc" class="filter-btn flex-shrink-0 text-xs px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-file-alt mr-1"></i>Dokumen <span id="countDoc" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
+                    <button data-filter="audio" class="filter-btn flex-shrink-0 text-xs px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-music mr-1"></i>Audio <span id="countAudio" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
+                    <button data-filter="video" class="filter-btn flex-shrink-0 text-xs px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-video mr-1"></i>Video <span id="countVideo" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
+                    <button data-filter="archive" class="filter-btn flex-shrink-0 text-xs px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-file-archive mr-1"></i>Arsip <span id="countArchive" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
                 </div>
-                <div class="flex gap-2 min-w-0">
-                    <div class="relative flex-1 min-w-0">
-                        <input type="text" id="searchInput" placeholder="Cari file..." class="w-full py-2 pl-9 pr-4 border rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" style="background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-sm" style="color: var(--text-tertiary);"></i>
+                <!-- Search + Refresh: fixed width, no shrink -->
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <div class="relative">
+                        <input type="text" id="searchInput" placeholder="Cari file..." class="py-1.5 pl-8 pr-3 border rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" style="width: 180px; background-color: var(--bg-primary); border-color: var(--border-color); color: var(--text-primary);">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color: var(--text-tertiary);"></i>
                     </div>
-                    <button id="refreshBtn" class="p-2 w-10 h-10 flex items-center justify-center rounded-full border" style="background-color: var(--bg-primary); border-color: var(--border-color);" title="Muat Ulang">
-                        <i class="fas fa-sync-alt" style="color: var(--primary-color);"></i>
+                    <button id="refreshBtn" class="p-2 w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-full border" style="background-color: var(--bg-primary); border-color: var(--border-color);" title="Muat Ulang">
+                        <i class="fas fa-sync-alt text-xs" style="color: var(--primary-color);"></i>
                     </button>
                 </div>
             </div>

@@ -193,6 +193,30 @@
   </div>
 </div>
 
+<!-- Edit Public URL Modal -->
+<div id="edit-url-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
+  <div class="rounded-2xl shadow-xl w-full max-w-md" style="background-color: var(--bg-primary);">
+    <div class="flex items-center justify-between p-5" style="border-bottom: 1px solid var(--border-color);">
+      <h2 class="text-base font-semibold" style="color: var(--text-primary);">Set Public URL</h2>
+      <button onclick="closeEditUrlModal()" style="color: var(--text-tertiary);"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="p-5 space-y-4">
+      <p class="text-sm" style="color: var(--text-secondary);">Bucket: <span id="edit-url-bucket-name" class="font-semibold" style="color: var(--text-primary);"></span></p>
+      <div>
+        <label class="block text-sm font-medium mb-1" style="color: var(--text-secondary);">Public URL <span class="font-normal" style="color: var(--text-tertiary);">(optional)</span></label>
+        <input id="edit-url-input" type="url" placeholder="https://cdn.example.com"
+          class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+          style="background-color: var(--bg-secondary); border-color: var(--border-color); color: var(--text-primary);">
+        <p class="text-xs mt-1" style="color: var(--text-tertiary);">Used as base URL for file links. Leave empty to use presigned URLs.</p>
+      </div>
+      <div class="flex gap-3 pt-1">
+        <button type="button" onclick="closeEditUrlModal()" class="flex-1 px-4 py-2 border rounded-lg text-sm transition-colors" style="border-color: var(--border-color); color: var(--text-secondary); background-color: var(--bg-secondary);">Cancel</button>
+        <button type="button" onclick="submitEditUrl()" id="edit-url-btn" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="/js/bucket-selector.js"></script>
 </body>
 </html>
