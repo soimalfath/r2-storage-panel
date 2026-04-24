@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 hasMoreFiles = !!nextToken;
             }
             allFiles = isRefresh ? files : [...allFiles, ...files];
-            // Normalize url field: API returns publicUrl + presignedUrl, frontend uses file.url
+            // Normalize url field: publicUrl (permanent) > presignedUrl (for img display) > proxy download
             allFiles = allFiles.map(f => ({
                 ...f,
                 url: f.url || f.publicUrl || f.presignedUrl || f.downloadUrl || '',
