@@ -1,3 +1,10 @@
+// Ensure cookies are always sent for same-origin API calls
+const _origFetch = window.fetch.bind(window);
+window.fetch = function(input, init = {}) {
+  if (!init.credentials) init.credentials = 'include';
+  return _origFetch(input, init);
+};
+
 // Check auth first
 let _panelConfig = { hasSharedCreds: false, hasCfConfig: false };
 
