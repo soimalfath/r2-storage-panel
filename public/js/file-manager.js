@@ -209,6 +209,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 hasMoreFiles = !!nextToken;
             }
             allFiles = isRefresh ? files : [...allFiles, ...files];
+            // Normalize url field: API returns publicUrl + presignedUrl, frontend uses file.url
+            allFiles = allFiles.map(f => ({
+                ...f,
+                url: f.url || f.publicUrl || f.presignedUrl || f.downloadUrl || '',
+            }));
 
             filterAndDisplayFiles();
             updateFilterCounts();
@@ -472,6 +477,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (result.success && result.data && result.data.file) {
                     const newFile = result.data.file;
+                    newFile.url = newFile.url || newFile.publicUrl || newFile.presignedUrl || newFile.downloadUrl || '';
                     const newCard = createFileCard(newFile);
                     
                     // Ganti placeholder dengan kartu yang sebenarnya
