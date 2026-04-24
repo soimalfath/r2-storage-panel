@@ -121,7 +121,7 @@ module.exports = async function handler(req, res) {
       const files = await Promise.all((result.Contents || []).map(async obj => {
         const url = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${obj.Key}` : null;
         let presignedUrl = null;
-        try { presignedUrl = await getPresignedUrl(client, { Bucket: bucketName, Key: obj.Key, expiresIn: 3600 }); } catch (e) {}
+        try { presignedUrl = await getPresignedUrl(client, { Bucket: bucketName, Key: obj.Key, expiresIn: 604800 }); } catch (e) {}
         return { key: obj.Key, filename: obj.Key, size: obj.Size, lastModified: obj.LastModified, contentType: mimeFromKey(obj.Key), url, presignedUrl, downloadUrl: `/r2/download/${encodeURIComponent(obj.Key)}` };
       }));
       return successResponse(res, { files, pagination: { nextToken: result.NextContinuationToken || null, isTruncated: result.IsTruncated || false, count: files.length } });

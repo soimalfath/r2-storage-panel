@@ -46,7 +46,7 @@ module.exports = async function handler(req, res) {
       let files = await Promise.all((result.Contents || []).map(async obj => {
         const publicUrl = baseUrl ? `${baseUrl.replace(/\/$/, '')}/${obj.Key}` : null;
         let presignedUrl = null;
-        try { presignedUrl = await getPresignedUrl(client, { Bucket: bucketName, Key: obj.Key, expiresIn: 3600 }); } catch (e) {}
+        try { presignedUrl = await getPresignedUrl(client, { Bucket: bucketName, Key: obj.Key, expiresIn: 604800 }); } catch (e) {}
         return { key: obj.Key, filename: obj.Key, size: obj.Size, lastModified: obj.LastModified, contentType: getContentTypeFromKey(obj.Key), publicUrl, presignedUrl, downloadUrl: `/r2/download/${encodeURIComponent(obj.Key)}` };
       }));
 
