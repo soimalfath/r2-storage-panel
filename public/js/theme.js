@@ -1,14 +1,14 @@
 // Universal Theme Management
 class ThemeManager {
     constructor() {
-        this.init();
+        // Apply theme immediately (before DOM ready) to avoid flash
+        this.currentTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', this.currentTheme);
     }
 
     init() {
-        // Get saved theme or default to light
-        this.currentTheme = localStorage.getItem('theme') || 'light';
-        this.applyTheme(this.currentTheme);
         this.createToggleButton();
+        this.updateToggleIcon();
         this.bindEvents();
     }
 
@@ -118,6 +118,7 @@ class ThemeManager {
 // Initialize theme manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.themeManager = new ThemeManager();
+    window.themeManager.init();
     // Expose global shortcut for inline onclick handlers
     window.toggleTheme = () => window.themeManager.toggleTheme();
 });
