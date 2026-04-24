@@ -40,12 +40,11 @@ class ThemeManager {
 
     insertToggleButton(toggleBtn) {
         // Try different locations based on page structure
-        const headerActions = document.querySelector('.flex.items-center.justify-end.gap-2');
-        const headerGap = document.querySelector('.flex.items-center.gap-2');
+        const headerActions = document.querySelector('header .flex.items-center.justify-end.gap-2');
+        const headerGap = document.querySelector('header .flex.items-center.gap-2');
         const header = document.querySelector('header');
         
         if (headerActions) {
-            // Insert before the last button (usually logout)
             const lastButton = headerActions.lastElementChild;
             headerActions.insertBefore(toggleBtn, lastButton);
         } else if (headerGap) {
@@ -53,7 +52,7 @@ class ThemeManager {
         } else if (header) {
             header.appendChild(toggleBtn);
         } else {
-            // Fallback: create floating toggle
+            // Fallback: floating toggle — safe, never inside page content
             toggleBtn.className += ' fixed top-4 right-4 z-50 bg-white border border-gray-300 shadow-lg';
             document.body.appendChild(toggleBtn);
         }
