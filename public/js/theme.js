@@ -118,6 +118,8 @@ class ThemeManager {
 // Initialize theme manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.themeManager = new ThemeManager();
+    // Expose global shortcut for inline onclick handlers
+    window.toggleTheme = () => window.themeManager.toggleTheme();
 });
 
 // Export for use in other scripts

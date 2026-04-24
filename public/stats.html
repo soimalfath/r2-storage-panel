@@ -9,8 +9,11 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="/css/main.css">
     <script src="/js/theme.js"></script>
+    <style>
+      .stat-icon-wrap { background-color: var(--bg-tertiary); border-radius: 9999px; padding: 0.75rem; }
+    </style>
 </head>
-<body class="font-sans transition-colors duration-300">
+<body class="font-sans transition-colors duration-300" style="background-color: var(--bg-secondary); color: var(--text-primary);">
 
     <!-- Toast container -->
     <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3"></div>
@@ -73,8 +76,8 @@
                             <p class="text-sm font-medium" style="color: var(--text-secondary);">Storage Used</p>
                             <p id="totalSizeCard" class="text-2xl font-bold" style="color: var(--text-primary);">-</p>
                         </div>
-                        <div class="bg-blue-100 dark:bg-blue-900 p-3 rounded-full">
-                            <i class="fas fa-hdd text-blue-600 dark:text-blue-400 text-xl"></i>
+                        <div class="stat-icon-wrap">
+                            <i class="fas fa-hdd text-blue-500 text-xl"></i>
                         </div>
                     </div>
                     <div class="mt-4">
@@ -94,8 +97,8 @@
                             <p class="text-sm font-medium" style="color: var(--text-secondary);">Total Files</p>
                             <p id="totalFilesCard" class="text-2xl font-bold" style="color: var(--text-primary);">-</p>
                         </div>
-                        <div class="bg-green-100 dark:bg-green-900 p-3 rounded-full">
-                            <i class="fas fa-file text-green-600 dark:text-green-400 text-xl"></i>
+                        <div class="stat-icon-wrap">
+                            <i class="fas fa-file text-green-500 text-xl"></i>
                         </div>
                     </div>
                 </div>
@@ -107,8 +110,8 @@
                             <p class="text-sm font-medium" style="color: var(--text-secondary);">Free Tier Limit</p>
                             <p id="freeTierLimitCard" class="text-2xl font-bold" style="color: var(--text-primary);">10 GB</p>
                         </div>
-                        <div class="bg-yellow-100 dark:bg-yellow-900 p-3 rounded-full">
-                            <i class="fas fa-exclamation-triangle text-yellow-600 dark:text-yellow-400 text-xl"></i>
+                        <div class="stat-icon-wrap">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 text-xl"></i>
                         </div>
                     </div>
                 </div>
@@ -120,8 +123,8 @@
                             <p class="text-sm font-medium" style="color: var(--text-secondary);">Remaining</p>
                             <p id="remainingSpaceCard" class="text-2xl font-bold" style="color: var(--text-primary);">-</p>
                         </div>
-                        <div class="bg-purple-100 dark:bg-purple-900 p-3 rounded-full">
-                            <i class="fas fa-database text-purple-600 dark:text-purple-400 text-xl"></i>
+                        <div class="stat-icon-wrap">
+                            <i class="fas fa-database text-purple-500 text-xl"></i>
                         </div>
                     </div>
                 </div>

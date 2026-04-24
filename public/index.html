@@ -198,17 +198,20 @@
                         </button>
                     </div>
                     
-                    <a href="/api-docs" class="p-2.5 rounded-lg transition-colors" style="background-color: var(--bg-tertiary); color: var(--text-secondary);" title="Dokumentasi API">
+                    <a href="/api-docs" class="p-2.5 rounded-lg transition-colors theme-toggle" style="background-color: var(--bg-tertiary); color: var(--text-secondary);" title="Dokumentasi API">
                         <i class="fas fa-code"></i>
                     </a>
-                    <a href="/webp-converter" class="bg-green-200 text-green-700 p-2.5 rounded-lg hover:bg-green-300 transition-colors" title="WebP Converter">
+                    <a href="/webp-converter" class="p-2.5 rounded-lg transition-colors theme-toggle" style="background-color: var(--bg-tertiary); color: var(--text-secondary);" title="WebP Converter">
                         <i class="fas fa-image"></i>
                     </a>
-                    <a href="/stats" class="bg-blue-200 text-blue-700 p-2.5 rounded-lg hover:bg-blue-300 transition-colors" title="Storage Statistics">
+                    <a href="/stats" class="p-2.5 rounded-lg transition-colors theme-toggle" style="background-color: var(--bg-tertiary); color: var(--text-secondary);" title="Storage Statistics">
                         <i class="fas fa-chart-bar"></i>
                     </a>
-                    <button id="logoutBtn" class="p-2.5 rounded-lg hover:bg-red-200 hover:text-red-700 transition-colors" style="background-color: var(--bg-tertiary); color: var(--text-secondary);" title="Keluar">
+                    <button id="logoutBtn" class="p-2.5 rounded-lg hover:bg-red-100 hover:text-red-700 transition-colors theme-toggle" style="background-color: var(--bg-tertiary); color: var(--text-secondary);" title="Keluar">
                         <i class="fas fa-sign-out-alt"></i>
+                    </button>
+                    <button id="theme-toggle" onclick="toggleTheme()" class="p-2.5 rounded-lg transition-colors theme-toggle" style="background-color: var(--bg-tertiary); color: var(--text-secondary);" title="Toggle theme">
+                        <i class="fas fa-moon"></i>
                     </button>
                 </div>
             </div>
@@ -217,12 +220,12 @@
         <div class="rounded-xl shadow-md p-4 mb-6 sticky top-4 z-20" style="background-color: var(--bg-primary);">
             <div class="flex flex-col md:flex-row gap-4 justify-between">
                 <div class="flex items-center flex-wrap gap-2">
-                    <button data-filter="all" class="filter-btn active text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors flex items-center gap-1">Semua <span id="countAll" class="ml-1 bg-gray-400 text-white rounded-full px-2 text-xs font-bold">0</span></button>
-                    <button data-filter="image" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors flex items-center gap-1"><i class="fas fa-image mr-1 sm:mr-2"></i>Gambar <span id="countImage" class="ml-1 bg-gray-300 text-gray-700 rounded-full px-2 text-xs font-bold">0</span></button>
-                    <button data-filter="doc" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors flex items-center gap-1"><i class="fas fa-file-alt mr-1 sm:mr-2"></i>Dokumen <span id="countDoc" class="ml-1 bg-gray-300 text-gray-700 rounded-full px-2 text-xs font-bold">0</span></button>
-                    <button data-filter="audio" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors flex items-center gap-1"><i class="fas fa-music mr-1 sm:mr-2"></i>Audio <span id="countAudio" class="ml-1 bg-gray-300 text-gray-700 rounded-full px-2 text-xs font-bold">0</span></button>
-                    <button data-filter="video" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors flex items-center gap-1"><i class="fas fa-video mr-1 sm:mr-2"></i>Video <span id="countVideo" class="ml-1 bg-gray-300 text-gray-700 rounded-full px-2 text-xs font-bold">0</span></button>
-                    <button data-filter="archive" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors flex items-center gap-1"><i class="fas fa-file-archive mr-1 sm:mr-2"></i>Arsip <span id="countArchive" class="ml-1 bg-gray-300 text-gray-700 rounded-full px-2 text-xs font-bold">0</span></button>
+                    <button data-filter="all" class="filter-btn active text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full transition-colors flex items-center gap-1">Semua <span id="countAll" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--primary-color); color: white;">0</span></button>
+                    <button data-filter="image" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-image mr-1 sm:mr-2"></i>Gambar <span id="countImage" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
+                    <button data-filter="doc" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-file-alt mr-1 sm:mr-2"></i>Dokumen <span id="countDoc" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
+                    <button data-filter="audio" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-music mr-1 sm:mr-2"></i>Audio <span id="countAudio" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
+                    <button data-filter="video" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-video mr-1 sm:mr-2"></i>Video <span id="countVideo" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
+                    <button data-filter="archive" class="filter-btn text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 rounded-full transition-colors flex items-center gap-1"><i class="fas fa-file-archive mr-1 sm:mr-2"></i>Arsip <span id="countArchive" class="ml-1 rounded-full px-2 text-xs font-bold" style="background-color: var(--bg-tertiary); color: var(--text-secondary);">0</span></button>
                 </div>
                 <div class="flex gap-2">
                     <div class="relative flex-grow">
