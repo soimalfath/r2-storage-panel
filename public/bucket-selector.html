@@ -9,6 +9,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/main.css">
   <script src="/js/theme.js"></script>
+  <style>
+    /* Ensure inputs are always readable regardless of theme */
+    #create-modal input, #import-modal input {
+      background-color: #ffffff !important;
+      color: #111827 !important;
+      border-color: #d1d5db !important;
+    }
+    [data-theme="dark"] #create-modal input,
+    [data-theme="dark"] #import-modal input {
+      background-color: #374151 !important;
+      color: #f9fafb !important;
+      border-color: #4b5563 !important;
+    }
+  </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 min-h-screen flex flex-col items-center justify-center p-4">
 
