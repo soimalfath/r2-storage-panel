@@ -53,6 +53,14 @@ module.exports = async function handler(req, res) {
     return errorResponse(res, 401, 'Authentication required');
   }
 
+  // GET /api/buckets/config — expose panel config flags to frontend
+  if (method === 'GET' && path === '/buckets/config') {
+    return successResponse(res, {
+      hasSharedCreds: !!(process.env.R2_SHARED_ACCESS_KEY_ID && process.env.R2_SHARED_SECRET_ACCESS_KEY),
+      hasCfConfig: !!(process.env.CF_ACCOUNT_ID && process.env.CF_API_TOKEN),
+    }, 'Config retrieved');
+  }
+
   // GET /api/buckets/cf-list — list bucket names from Cloudflare API
   if (method === 'GET' && path === '/buckets/cf-list') {
     try {
@@ -130,13 +138,22 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // POST /api/buckets — create new bucket
+  // POST /api/buckets — create/register new bucket
   if (method === 'POST' && (path === '/buckets' || path === '/buckets/')) {
     try {
-      const { name, endpoint, accessKeyId, secretAccessKey, publicUrl, createOnCloudflare } = req.body;
+      const { name, publicUrl, createOnCloudflare } = req.body;
+      let { endpoint, accessKeyId, secretAccessKey } = req.body;
 
-      if (!name || !endpoint || !accessKeyId || !secretAccessKey) {
-        return errorResponse(res, 400, 'name, endpoint, accessKeyId, secretAccessKey are required');
+      if (!name) return errorResponse(res, 400, 'name is required');
+
+      // Fall back to shared credentials from env if not provided
+      const accountId = process.env.CF_ACCOUNT_ID;
+      if (!accessKeyId) accessKeyId = process.env.R2_SHARED_ACCESS_KEY_ID;
+      if (!secretAccessKey) secretAccessKey = process.env.R2_SHARED_SECRET_ACCESS_KEY;
+      if (!endpoint && accountId) endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
+
+      if (!endpoint || !accessKeyId || !secretAccessKey) {
+        return errorResponse(res, 400, 'endpoint, accessKeyId, secretAccessKey are required (or set R2_SHARED_* in env)');
       }
 
       // Validate bucket name (R2 rules: lowercase, alphanumeric, hyphens)
@@ -152,7 +169,7 @@ module.exports = async function handler(req, res) {
       // Validate credentials can actually access the bucket
       await validateCredentials({ name, endpoint, accessKeyId, secretAccessKey });
 
-      const bucket = await addBucket({ name, endpoint, accessKeyId, secretAccessKey, publicUrl });
+      const bucket = await addBucket({ name, endpoint, accessKeyId, secretAccessKey, publicUrl: publicUrl || '' });
       return successResponse(res, toPublic(bucket), 'Bucket created successfully');
     } catch (err) {
       console.error('Create bucket error:', err);

@@ -1,9 +1,32 @@
 // Check auth first
+let _panelConfig = { hasSharedCreds: false, hasCfConfig: false };
+
 (async () => {
   const res = await fetch('/auth/status');
   const data = await res.json();
-  if (!data.data?.authenticated) window.location.href = '/login';
+  if (!data.data?.authenticated) { window.location.href = '/login'; return; }
+
+  // Load panel config
+  try {
+    const cfgRes = await fetch('/api/buckets/config');
+    const cfgData = await cfgRes.json();
+    _panelConfig = cfgData.data || _panelConfig;
+    applyPanelConfig();
+  } catch (e) {}
 })();
+
+function applyPanelConfig() {
+  const credFields = document.getElementById('credential-fields');
+  const credHint = document.getElementById('credential-hint');
+  if (!credFields) return;
+  if (_panelConfig.hasSharedCreds) {
+    credFields.classList.add('hidden');
+    if (credHint) credHint.classList.remove('hidden');
+  } else {
+    credFields.classList.remove('hidden');
+    if (credHint) credHint.classList.add('hidden');
+  }
+}
 
 async function loadBuckets() {
   const list = document.getElementById('bucket-list');
@@ -70,12 +93,16 @@ async function submitCreate(e) {
 
   const payload = {
     name: document.getElementById('f-name').value.trim(),
-    endpoint: document.getElementById('f-endpoint').value.trim(),
-    accessKeyId: document.getElementById('f-access-key').value.trim(),
-    secretAccessKey: document.getElementById('f-secret-key').value.trim(),
     publicUrl: document.getElementById('f-public-url').value.trim(),
     createOnCloudflare: document.getElementById('f-create-cf').checked,
   };
+
+  // Only include credentials if shared creds not configured
+  if (!_panelConfig.hasSharedCreds) {
+    payload.endpoint = document.getElementById('f-endpoint').value.trim();
+    payload.accessKeyId = document.getElementById('f-access-key').value.trim();
+    payload.secretAccessKey = document.getElementById('f-secret-key').value.trim();
+  }
 
   try {
     const res = await fetch('/api/buckets', {
