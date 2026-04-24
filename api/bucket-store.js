@@ -12,7 +12,14 @@ async function readStore() {
     return JSON.parse(Buffer.concat(chunks).toString('utf-8'));
   } catch (err) {
     // File doesn't exist yet — return empty list
-    if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) return [];
+    const status = err.$metadata?.httpStatusCode;
+    if (
+      err.name === 'NoSuchKey' ||
+      err.name === 'NotFound' ||
+      err.Code === 'NoSuchKey' ||
+      status === 404
+    ) return [];
+    console.error('bucket-store readStore error:', err.name, err.message);
     throw err;
   }
 }

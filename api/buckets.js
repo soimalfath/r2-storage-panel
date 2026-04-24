@@ -122,7 +122,11 @@ module.exports = async function handler(req, res) {
       return successResponse(res, buckets.map(toPublic), 'Buckets retrieved');
     } catch (err) {
       console.error('List buckets error:', err);
-      return errorResponse(res, 500, 'Failed to list buckets');
+      // Surface the real error in non-production for easier debugging
+      const msg = process.env.NODE_ENV === 'production'
+        ? 'Failed to list buckets'
+        : `Failed to list buckets: ${err.message}`;
+      return errorResponse(res, 500, msg);
     }
   }
 
