@@ -1044,11 +1044,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- App Initialization ---
+    async function fetchTotalCount() {
+        try {
+            const res = await fetchWithAutoRefresh('/api/stats/count');
+            if (!res.ok) return;
+            const data = await res.json();
+            const total = data.data?.totalFiles ?? data.totalFiles;
+            if (total !== undefined) {
+                const el = document.getElementById('countAll');
+                if (el) el.textContent = total;
+            }
+        } catch (e) { /* non-fatal */ }
+    }
+
     async function init() {
         const isAuthenticated = await checkAuth();
         if (isAuthenticated) {
             setupEventListeners();
             loadFiles(true);
+            fetchTotalCount(); // background — get real total without blocking UI
         }
     }
 

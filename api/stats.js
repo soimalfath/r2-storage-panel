@@ -78,5 +78,25 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // GET /api/stats/count — lightweight total file count (loops all pages, no presigned URLs)
+  if (req.method === 'GET' && req.url === '/stats/count') {
+    try {
+      const { newAccessToken } = authenticateHybrid(req);
+      if (newAccessToken) res.setHeader('Set-Cookie', setCookie('accessToken', newAccessToken, { maxAge: 15 * 60 }));
+
+      let totalFiles = 0, nextToken = null;
+      do {
+        const result = await listObjects(client, { Bucket: bucketName, ContinuationToken: nextToken, MaxKeys: 1000 });
+        totalFiles += (result.Contents || []).length;
+        nextToken = result.NextContinuationToken;
+      } while (nextToken);
+
+      return successResponse(res, { totalFiles }, 'Count retrieved');
+    } catch (error) {
+      if (error.message.includes('token') || error.message.includes('authenticate')) return errorResponse(res, 401, error.message);
+      return errorResponse(res, 500, 'Failed to count files');
+    }
+  }
+
   return errorResponse(res, 404, 'Not found');
 };
