@@ -79,13 +79,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Configuration
     // Ambil API_KEY dari endpoint backend agar selalu sinkron dengan env
     let DEFAULT_API_KEY = 'your-api-key-change-this';
-    fetch('/api/apikey')
+    fetch('/api/apikey', { credentials: 'include' })
       .then(r => r.json())
       .then(d => {
         if (d.apiKey) DEFAULT_API_KEY = d.apiKey;
-        else showToast('Gagal mengambil API key dari backend', 'error');
+        else showToast('Failed to load API key from backend', 'error');
       })
-     .catch(() => showToast('Gagal mengambil API key dari backend', 'error'));
+     .catch(() => showToast('Failed to load API key from backend', 'error'));
 
     // DOM Elements
     const generateApiKeyBtn = document.getElementById('generateApiKeyBtn');
@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             apiKeySection.classList.remove('hidden');
             // Ambil API key terbaru dari backend jika belum ada
             if (!DEFAULT_API_KEY || DEFAULT_API_KEY === 'your-api-key-change-this') {
-                fetch('/api/apikey').then(r => r.json()).then(d => {
+                fetch('/api/apikey', { credentials: 'include' }).then(r => r.json()).then(d => {
                     apiKeyDisplay.value = d.apiKey || 'your-api-key-change-this';
                 });
             } else {
