@@ -1,18 +1,30 @@
 // Endpoint: /api/apikey
-// Mengembalikan API key dari environment (hanya untuk kebutuhan inject ke FE docs, bukan untuk konsumsi publik)
+// Returns the configured API key ONLY to an authenticated admin session (JWT).
+// This value is sensitive: it grants upload/delete access to the bucket.
+// It must never be exposed publicly or with a wildcard CORS policy.
+
+const { authenticateToken, handleCors, errorResponse } = require('./utils');
 
 module.exports = async (req, res) => {
+  // Credentialed CORS (reflects request origin, allows cookies). Never wildcard.
+  if (handleCors(req, res)) return;
+
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET');
-    return res.status(405).json({ error: 'Method Not Allowed' });
+    return errorResponse(res, 405, 'Method Not Allowed');
   }
-  // CORS agar bisa diakses dari mana saja (khusus endpoint ini)
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // Require a valid admin session. Without this, the API key would leak.
+  try {
+    authenticateToken(req);
+  } catch (err) {
+    return errorResponse(res, 401, 'Unauthorized', 'Valid admin session required');
+  }
 
   const apiKey = process.env.API_KEY || '';
-  if (!apiKey) return res.status(404).json({ error: 'API key not set' });
-  res.json({ apiKey });
+  if (!apiKey) {
+    return errorResponse(res, 404, 'API key not configured');
+  }
+
+  return res.status(200).json({ apiKey });
 };
